@@ -183,6 +183,9 @@ $config['snmp']['v3'][0]['cryptoalgo'] = 'AES';
 
 // Devices must respond to icmp by default
 $config['icmp_check'] = true;
+$config['max_pings'] = 100;
+$config['ping_rrd_step'] = 5;
+
 
 // Autodiscovery Settings
 $config['autodiscovery']['xdp'] = true;
