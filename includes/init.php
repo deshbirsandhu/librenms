@@ -101,7 +101,8 @@ if ($config['memcached']['enable'] === true) {
 $setup = array(
     'storage' => $config['memcached']['enable'] ? 'memcache' : 'files',
     'path' => $config['snmp']['cache_dir'],
-    "server" => array(
+//    'allow_search' => true,
+    'server' => array(
         array($config['memcached']['host'], $config['memcached']['port'], 1)
     ),
     'fallback' => array(

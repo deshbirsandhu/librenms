@@ -40,6 +40,10 @@ class NetSnmp extends RawBase implements SnmpTranslator
      */
     public function getRaw($device, $oids, $options = null, $mib = null, $mib_dir = null)
     {
+        if (empty($oids)) {
+            return '';
+        }
+
         $oids = is_array($oids) ? implode(' ', $oids) : $oids;
         return $this->exec($this->genSnmpgetCmd($device, $oids, $options, $mib, $mib_dir));
     }
@@ -130,10 +134,10 @@ class NetSnmp extends RawBase implements SnmpTranslator
         self::$cached_translations[$oid];
     }
 
-    private function exec($cmd)
+    private static function exec($cmd)
     {
         global $debug;
-        c_echo('SNMP[%c'.$cmd."%n]\n", $debug);
+        c_echo("SNMP[%c$cmd%n]\n", $debug);
         $process = new Proc($cmd, null, null, true);
         list($output, $stderr) = $process->getOutput();
         $process->close();

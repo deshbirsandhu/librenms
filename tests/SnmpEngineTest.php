@@ -120,7 +120,8 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
             'extra_oid' => array(),
             'type' => 'string',
             'value' => 'Unit Tests sysDescr',
-            'error' => 0
+            'mib' => 'SNMPv2-MIB',
+            'name' => 'sysDescr',
         ));
         set_debug(true);
 
@@ -143,7 +144,8 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
                 ),
                 'type' => 'string',
                 'value' => '84:d6:d0:ed:1f:96',
-                'error' => 0
+                'mib' => 'IP-MIB',
+                'name' => 'ipNetToPhysicalPhysAddress',
             )),
             OIDData::make(array(
                 'oid' => 'IP-MIB::ipNetToPhysicalPhysAddress.97.ipv6."fd:80:00:00:00:00:00:00:26:e9:b3:ff:fe:bb:50:c3"',
@@ -155,13 +157,13 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
                 ),
                 'type' => 'string',
                 'value' => '24:e9:b3:bb:60:ad',
-                'error' => 0
+                'mib' => 'IP-MIB',
+                'name' => 'ipNetToPhysicalPhysAddress',
             ))
         ));
 
 
         $results = SNMP::walk($device, 'ipNetToPhysicalPhysAddress');
-//        var_dump($results);
         $this->assertEquals($expected, $results);
     }
 }

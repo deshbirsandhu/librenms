@@ -25,12 +25,15 @@
 
 namespace LibreNMS\SNMP\Engines;
 
+use LibreNMS\SNMP\Cache;
 use LibreNMS\SNMP\DataSet;
 use LibreNMS\SNMP\Parse;
 
 abstract class RawBase extends Base
 {
     /**
+     * Get SNMP DataSet, will return cached result if it is available
+     *
      * @param array $device
      * @param string|array $oids single or array of oids to get
      * @param string $mib Additional mibs to search, optionally you can specify full oid names
@@ -40,7 +43,45 @@ abstract class RawBase extends Base
     public function get($device, $oids, $mib = null, $mib_dir = null)
     {
         try {
-            return Parse::rawOutput($this->getRaw($device, $oids, null, $mib, $mib_dir));
+            $oid_keys = collect($oids)->combine(collect($oids)->map(function ($oid) use ($device) {
+                return Cache::genKey('RawBase::get', $oid, $device['device_id'], $device['community']);
+            }));
+
+            // retrieve cached data
+            $cached = $oid_keys->filter(function ($key) {
+                return Cache::has($key);
+            })->map(function ($key) {
+                return Cache::get($key);
+            });
+
+//            echo "CACHED\n";
+//            var_dump($cached->all());
+//            exit();
+
+
+
+//            $cached_oids = $cached->pluck('oid');
+            $oids_to_fetch = $oid_keys->diffKeys($cached)->keys();
+
+
+            $fetched = $oids_to_fetch
+                ->combine(Parse::rawOutput($this->getRaw($device, $oids_to_fetch->all(), null, $mib, $mib_dir)));
+
+            // cache the results individually
+            $fetched->each(function ($entry, $oid) use ($oid_keys) {
+                d_echo("Caching $oid\n");
+                Cache::put($oid_keys->get($oid), $entry);
+            });
+
+            $result = $fetched->merge($cached);
+
+            // put things in the correct order
+            // TODO: is this important?
+            $result = $oid_keys->keys()->map(function ($oid) use ($result) {
+                return $result->get($oid);
+            })->values();
+
+            return (count((array)$oids) == 1 && $result->count() == 1) ? $result->first() : DataSet::make($result);
         } catch (\Exception $e) {
             return DataSet::makeError(Parse::errorMessage($e->getMessage()));
         }

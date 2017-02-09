@@ -25,12 +25,12 @@
 
 namespace LibreNMS;
 
+use LibreNMS\SNMP\Cache;
 use LibreNMS\SNMP\Contracts\SnmpEngine;
 use LibreNMS\SNMP\Contracts\SnmpTranslator;
 use LibreNMS\SNMP\DataSet;
 use LibreNMS\SNMP\Engines\NetSnmp;
 use LibreNMS\SNMP\OIDData;
-use phpFastCache\CacheManager;
 
 class SNMP
 {
@@ -98,11 +98,7 @@ class SNMP
      */
     public static function get($device, $oids, $mib = null, $mib_dir = null)
     {
-        $key = self::genKey(__FUNCTION__, $oids, $device['device_id'], $device['community']);
-        $result = self::cacheOrFetch($key, function () use ($device, $oids, $mib, $mib_dir) {
-            return SNMP::getInstance()->get($device, $oids, $mib, $mib_dir);
-        });
-
+        $result = SNMP::getInstance()->get($device, $oids, $mib, $mib_dir);
         return (count((array)$oids) == 1 && $result->count() == 1) ? $result->first() : $result;
     }
 
@@ -116,10 +112,7 @@ class SNMP
      */
     public static function getRaw($device, $oids, $options = null, $mib = null, $mib_dir = null)
     {
-        $key = self::genKey(__FUNCTION__, $oids, $device['device_id'], $device['community'] . $options);
-        return self::cacheOrFetch($key, function () use ($device, $oids, $options, $mib, $mib_dir) {
-            return SNMP::getInstance()->getRaw($device, $oids, $options, $mib, $mib_dir);
-        });
+        return SNMP::getInstance()->getRaw($device, $oids, $options, $mib, $mib_dir);
     }
 
 
@@ -132,10 +125,7 @@ class SNMP
      */
     public static function walk($device, $oids, $mib = null, $mib_dir = null)
     {
-        $key = self::genKey(__FUNCTION__, $oids, $device['device_id'], $device['community']);
-        return self::cacheOrFetch($key, function () use ($device, $oids, $mib, $mib_dir) {
-            return SNMP::getInstance()->walk($device, $oids, $mib, $mib_dir);
-        });
+        return SNMP::getInstance()->walk($device, $oids, $mib, $mib_dir);
     }
 
     /**
@@ -148,10 +138,7 @@ class SNMP
      */
     public static function walkRaw($device, $oid, $options = null, $mib = null, $mib_dir = null)
     {
-        $key = self::genKey(__FUNCTION__, $oid, $device['device_id'], $device['community'] . $options);
-        return self::cacheOrFetch($key, function () use ($device, $oid, $options, $mib, $mib_dir) {
-            return SNMP::getInstance()->walkRaw($device, $oid, $options, $mib, $mib_dir);
-        });
+        return SNMP::getInstance()->walkRaw($device, $oid, $options, $mib, $mib_dir);
     }
 
 
@@ -169,8 +156,8 @@ class SNMP
             return $oids;
         }
 
-        $key = self::genKey(__FUNCTION__, $oids, '', $options);
-        $result = (array)self::cacheOrFetch($key, function () use ($device, $oids, $options, $mib, $mib_dir) {
+        $key = Cache::genKey(__FUNCTION__, $oids, '', $options);
+        $result = (array)Cache::getOrFetch($key, function () use ($device, $oids, $options, $mib, $mib_dir) {
             return SNMP::getTranslator()->translate($device, $oids, $options, $mib, $mib_dir);
         }, 86400);
 
@@ -190,57 +177,11 @@ class SNMP
             return $oids;
         }
 
-        $key = self::genKey(__FUNCTION__, $oids);
-        $result = (array)self::cacheOrFetch($key, function () use ($device, $oids, $mib, $mib_dir) {
+        $key = Cache::genKey(__FUNCTION__, $oids);
+        $result = (array)Cache::getOrFetch($key, function () use ($device, $oids, $mib, $mib_dir) {
             return SNMP::getTranslator()->translateNumeric($device, $oids, $mib, $mib_dir);
         }, 86400);
 
         return is_array($oids) ? $result : array_shift($result);
-    }
-
-    /**
-     * Generate a string to use as the key
-     *
-     * @param string $group generally, this is the function name returned by __FUNCTION__
-     * @param array|string $oids oid or array of oids
-     * @param int|string $device_id The id of the device
-     * @param string $extra extra string, such as command options or anything that might vary your data
-     * @return string the resulting key string
-     */
-    private static function genKey($group, $oids, $device_id = '', $extra = '')
-    {
-        return $group . $device_id . implode((array)$oids) . $extra;
-    }
-
-    private static function cacheOrFetch($key, $callback, $time = 0)
-    {
-        global $config;
-
-//        var_dump($key);
-
-        if (!$config['snmp']['cache']) {
-            return call_user_func($callback);
-        }
-
-        $cache = CacheManager::getInstance();
-//        $cache->clean();
-        $cached_result = $cache->get($key);
-//        var_dump($cached_result);
-
-        if (is_null($cached_result)) {
-            $result = call_user_func($callback);
-            if ($time === 0) {
-                $time = $config['snmp']['cache_time'];
-            }
-//            echo "Cache time: $time\n";
-            $cache->set($key, $result, $time);
-//            echo "Returning fresh $key: ";
-//            var_dump($result);
-            return $result;
-        }
-
-//        echo "Returning cached $key: ";
-//        var_dump($cached_result);
-        return $cached_result;
     }
 }
