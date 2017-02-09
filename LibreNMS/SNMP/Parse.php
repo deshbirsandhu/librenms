@@ -200,7 +200,7 @@ class Parse
      */
     public static function stringType($input)
     {
-        return Format::stringType(trim($input, "\""));
+        return Format::stringType(trim(stripslashes($input), "\""));
     }
 
     public static function oidType($input)

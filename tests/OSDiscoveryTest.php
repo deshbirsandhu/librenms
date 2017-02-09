@@ -25,6 +25,8 @@
 
 namespace LibreNMS\Tests;
 
+use LibreNMS\SNMP\Engines\Mock;
+
 class DiscoveryTest extends \PHPUnit_Framework_TestCase
 {
     /**
@@ -39,33 +41,11 @@ class DiscoveryTest extends \PHPUnit_Framework_TestCase
         $community = $filename ?: $expected_os;
 
         ob_start();
-        $os = getHostOS($this->genDevice($community));
+        $os = getHostOS(Mock::genDevice($community));
         $output = ob_get_contents();
         ob_end_clean();
 
         $this->assertEquals($expected_os, $os, "Test file: $community.snmprec\n$output");
-    }
-
-    /**
-     * Generate a fake $device array
-     *
-     * @param string $community The snmp community to set
-     * @return array resulting device array
-     */
-    private function genDevice($community)
-    {
-        return array(
-            'device_id' => 1,
-            'hostname' => '127.0.0.1',
-            'snmpver' => 'v2c',
-            'port' => 11161,
-            'timeout' => 3,
-            'retries' => 0,
-            'snmp_max_repeaters' => 10,
-            'community' => $community,
-            'os' => 'generic',
-            'os_group' => '',
-        );
     }
 
     public function test3com()

@@ -86,43 +86,26 @@ class Cache
             return $result;
         }
 
-        if ($debug) {
-            // FIXME: Don't print community
-            c_echo("SNMP[%cCached $key%n]\n[");
-            if (is_string($cached_result)) {
-                echo $cached_result;
-            } else {
-                $cached_result->each(function ($entry) {
-                    print_r($entry);
-                    echo $entry->rawOid . $entry->rawValue;
-                });
-            }
-            echo "]\n";
-        }
-
+        self::printDebug($key, $cached_result);
         return $cached_result;
     }
 
     public static function get($key)
     {
-        return CacheManager::getInstance()->get($key);
+        $data = CacheManager::getInstance()->get($key);
+        self::printDebug($key, $data);
+        return $data;
     }
 
     public static function put($key, $value, $time = null)
     {
-        global $debug;
-
         if (is_null($time)) {
             global $config;
             $time = $config['snmp']['cache_time'];
         }
 
         CacheManager::getInstance()->set($key, $value, $time);
-
-        if ($debug) {
-            echo "Cached $key:\n";
-            var_dump(CacheManager::getInstance()->get($key));
-        }
+        d_echo("Cached $key\n");
     }
 
     /**
@@ -147,6 +130,30 @@ class Cache
      */
     public static function genKey($group, $oids, $device_id = '', $extra = '')
     {
-        return $group . $device_id . implode((array)$oids) . $extra;
+        return "{$group}_{$device_id}_" . implode('-', (array)$oids) . "_{$extra}";
+    }
+
+    /**
+     * Print an approximation of NetSNMP output
+     * This will NOT match NetSNMP output exactly
+     *
+     * @param string $key The cache key
+     * @param DataSet|string $data The returned data
+     */
+    private static function printDebug($key, $data)
+    {
+        global $debug;
+        if ($debug) {
+            list($cacher, $device_id, $oids) = $info = explode('_', $key);
+            c_echo("SNMP[%cCached by $cacher device_id:$device_id oids:$oids%n]\n[");
+            if (is_string($data)) {
+                echo $data;
+            } else {
+                $data->each(function ($entry) {
+                    echo "{$entry->oid} = {$entry->type}: {$entry->value}\n";
+                });
+            }
+            echo "]\n";
+        }
     }
 }

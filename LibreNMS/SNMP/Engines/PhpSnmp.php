@@ -52,8 +52,8 @@ class PhpSnmp extends FormattedBase
             $this->versionTable[$device['snmpver']],
             $device['hostname'] . ':' . $device['port'],
             $device['community'],
-            (prep_snmp_setting($device, 'timeout') ?: 1) * 1000000,
-            prep_snmp_setting($device, 'retries') ?: 5
+            ($this->prepSetting($device, 'timeout') ?: 1) * 1000000,
+            $this->prepSetting($device, 'retries') ?: 5
         );
     }
 

@@ -26,9 +26,6 @@
 namespace LibreNMS\SNMP\Engines;
 
 use LibreNMS\SNMP\Contracts\SnmpEngine;
-use LibreNMS\SNMP\DataSet;
-use LibreNMS\SNMP\Format;
-use LibreNMS\SNMP\Parse;
 
 abstract class Base implements SnmpEngine
 {
@@ -40,5 +37,17 @@ abstract class Base implements SnmpEngine
     {
         $reflectionClass = new \ReflectionClass($this);
         return $reflectionClass->getShortName();
+    }
+
+    //FIXME probably not the right place for this...
+    protected function prepSetting($device, $setting)
+    {
+        global $config;
+
+        if (isset($device[$setting]) && is_numeric($device[$setting]) && $device[$setting] > 0) {
+            return $device[$setting];
+        } elseif (isset($config['snmp'][$setting])) {
+            return $config['snmp'][$setting];
+        }
     }
 }

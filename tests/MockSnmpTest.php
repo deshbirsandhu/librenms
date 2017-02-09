@@ -25,14 +25,11 @@
 
 namespace LibreNMS\Tests;
 
-use LibreNMS\SNMP;
-use LibreNMS\SNMP\Engines\Mock;
-
 class MockSnmpTest extends SnmpEngineTest
 {
     public function setUp()
     {
         parent::setUp();
-        SNMP::getInstance(new Mock());
+//        SNMP::getInstance(new Mock());
     }
 }

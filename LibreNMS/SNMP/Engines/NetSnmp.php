@@ -290,17 +290,6 @@ class NetSnmp extends RawBase implements SnmpTranslator
         return $cmd;
     }
 
-    private function prepSetting($device, $setting)
-    {
-        global $config;
-
-        if (isset($device[$setting]) && is_numeric($device[$setting]) && $device[$setting] > 0) {
-            return $device[$setting];
-        } elseif (isset($config['snmp'][$setting])) {
-            return $config['snmp'][$setting];
-        }
-    }
-
     private function getMaxRepeaters($device)
     {
         global $config;

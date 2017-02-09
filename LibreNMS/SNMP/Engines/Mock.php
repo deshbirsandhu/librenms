@@ -45,13 +45,13 @@ class Mock extends FormattedBase
      * @param int $port port for snmpsim, should be defined by SNMPSIM
      * @return array
      */
-    public static function genDevice($community = null, $port = 11161)
+    public static function genDevice($community = null, $port = null)
     {
         return array(
             'device_id' => 1,
             'hostname' => '127.0.0.1',
             'snmpver' => 'v2c',
-            'port' => $port,
+            'port' => $port ?: (getenv('SNMPSIM') ?: 11161),
             'timeout' => 3,
             'retries' => 0,
             'snmp_max_repeaters' => 10,

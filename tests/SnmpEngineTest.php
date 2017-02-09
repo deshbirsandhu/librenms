@@ -107,7 +107,7 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals(SNMP::ERROR_UNREACHABLE, $result->getError());
 
         // set up a device
-        $device = Mock::genDevice('unit_tests', getenv('SNMPSIM'));
+        $device = Mock::genDevice('unit_tests');
 
 
 //        var_dump(SNMP::get($device, 'sysDescr.0')->first()->all());
@@ -129,10 +129,27 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals($expected, $results);
     }
 
+    public function testQuotes()
+    {
+        $expected = OIDData::make(array(
+            'oid' => 'SNMPv2-MIB::sysContact.0',
+            'base_oid' => 'SNMPv2-MIB::sysContact',
+            'index' => 0,
+            'extra_oid' => array(),
+            'type' => 'string',
+            'value' => 'null@yarl.com',
+            'mib' => 'SNMPv2-MIB',
+            'name' => 'sysContact',
+        ));
+
+        $results = SNMP::get(Mock::genDevice('unit_tests'), 'SNMPv2-MIB::sysContact.0');
+        $this->assertEquals($expected, $results);
+    }
+
     public function testEmbededString()
     {
         $this->checkSnmpsim();
-        $device = Mock::genDevice('unit_tests', getenv('SNMPSIM'));
+        $device = Mock::genDevice('unit_tests');
         $expected = DataSet::make(array(
             OIDData::make(array(
                 'oid' => 'IP-MIB::ipNetToPhysicalPhysAddress.1.ipv6."fd:80:00:00:00:00:00:00:86:d6:d0:ff:fe:ed:0f:cc"',

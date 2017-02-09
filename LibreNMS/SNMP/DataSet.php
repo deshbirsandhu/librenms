@@ -49,7 +49,8 @@ class DataSet extends BaseDataSet
         return $this->getByField('base_oid', $base_oid);
     }
 
-    public function removeErrors() {
+    public function removeErrors()
+    {
         return $this->reject(function ($oiddata) {
             return $oiddata->hasError();
         });
@@ -70,7 +71,8 @@ class DataSet extends BaseDataSet
         });
     }
 
-    public function getValuesByName() {
+    public function getValuesByName()
+    {
         return $this->getValuesByField('name');
     }
 
