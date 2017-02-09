@@ -40,9 +40,11 @@ if (getenv('DBTEST')) {
 require $install_dir . '/includes/init.php';
 chdir($install_dir);
 
-$config['install_dir'] = $install_dir;
-$config['mib_dir'] = $install_dir . '/mibs';
-$config['snmpget'] = 'snmpget';
+if (getenv('SNMPSIM')) {
+    $config['snmp']['port'] = getenv('SNMPSIM');
+}
+
+\LibreNMS\SNMP\Cache::clear();
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL & ~E_WARNING);

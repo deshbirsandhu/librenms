@@ -23,6 +23,8 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
+use LibreNMS\SNMP\Cache;
+
 /**
  * @param array $modules Which modules to initialize
  */
@@ -99,6 +101,8 @@ if ($config['memcached']['enable'] === true) {
         $config['memcached']['enable'] = 0;
     }
 }
+
+Cache::setup();
 
 if (!module_selected('nodb', $init_modules)) {
     // Connect to database

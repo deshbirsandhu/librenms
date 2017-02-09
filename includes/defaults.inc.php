@@ -51,6 +51,7 @@ $config['fping_options']['count']   = 3;
 $config['fping_options']['millisec'] = 200;
 $config['snmpwalk']                  = '/usr/bin/snmpwalk';
 $config['snmpget']                   = '/usr/bin/snmpget';
+$config['snmpbulkget']               = '/usr/bin/snmpbulkget';
 $config['snmpbulkwalk']              = '/usr/bin/snmpbulkwalk';
 $config['whois']          = '/usr/bin/whois';
 $config['ping']           = '/bin/ping';
@@ -185,6 +186,10 @@ $config['snmp']['v3'][0]['cryptopass'] = '';
 // Privacy (Encryption) Passphrase
 $config['snmp']['v3'][0]['cryptoalgo'] = 'AES';
 // AES | DES
+$config['snmp']['cache'] = true;
+$config['snmp']['cache_time'] = 300; // seconds
+$config['snmp']['cache_dir'] = $config['install_dir'].'/cache';
+$config['snmp']['engine'] = 'NetSnmp';
 
 // Devices must respond to icmp by default
 $config['icmp_check'] = true;

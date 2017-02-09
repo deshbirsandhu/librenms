@@ -210,7 +210,7 @@ function check_unit($passthru = false, $command_only = false, $fail_fast = false
     $phpunit_bin = check_exec('phpunit');
 
     if ($snmpsim) {
-        $phpunit_cmd = "SNMPSIM=1 $phpunit_bin --colors=always";
+        $phpunit_cmd = "SNMPSIM=11161 $phpunit_bin --colors=always";
         $snmpsim_cmd = "snmpsimd.py --data-dir=./tests/snmpsim --agent-udpv4-endpoint=127.0.0.1:11161 --logging-method=file:/tmp/snmpsimd.log";
     } else {
         $phpunit_cmd = "$phpunit_bin --colors=always";

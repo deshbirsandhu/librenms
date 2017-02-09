@@ -25,8 +25,19 @@
 
 namespace LibreNMS\Tests;
 
+use LibreNMS\SNMP;
+use LibreNMS\SNMP\Engines\Mock;
+
 class DiscoveryTest extends \PHPUnit_Framework_TestCase
 {
+    public function setUp()
+    {
+        parent::setUp();
+        if (!getenv('SNMPSIM')) {
+            SNMP::getInstance(new Mock());
+        }
+    }
+
     /**
      * Set up and test an os
      * If $filename is not set, it will use the snmprec file matching $expected_os
@@ -39,33 +50,11 @@ class DiscoveryTest extends \PHPUnit_Framework_TestCase
         $community = $filename ?: $expected_os;
 
         ob_start();
-        $os = getHostOS($this->genDevice($community));
+        $os = getHostOS(Mock::genDevice($community));
         $output = ob_get_contents();
         ob_end_clean();
 
         $this->assertEquals($expected_os, $os, "Test file: $community.snmprec\n$output");
-    }
-
-    /**
-     * Generate a fake $device array
-     *
-     * @param string $community The snmp community to set
-     * @return array resulting device array
-     */
-    private function genDevice($community)
-    {
-        return array(
-            'device_id' => 1,
-            'hostname' => '127.0.0.1',
-            'snmpver' => 'v2c',
-            'port' => 11161,
-            'timeout' => 3,
-            'retries' => 0,
-            'snmp_max_repeaters' => 10,
-            'community' => $community,
-            'os' => 'generic',
-            'os_group' => '',
-        );
     }
 
     public function testOSTestsExist()
@@ -96,12 +85,17 @@ class DiscoveryTest extends \PHPUnit_Framework_TestCase
             $tests
         );
 
+        $ignored_files = array(
+            'skel',
+            'unit_tests',
+        );
+
         foreach ($files as $file) {
             $test_name = basename($file, '.snmprec');
 
             $index = array_search($test_name, $tests[1]);
 
-            if ($test_name != 'skel' && $index === false) {
+            if ($index === false && !in_array($test_name, $ignored_files)) {
                 $next = array_search($test_name, $tests[2]);
                 if ($next === false) {
                     $this->fail("No test for $file");

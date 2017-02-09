@@ -17,6 +17,7 @@ use LibreNMS\Exceptions\HostUnreachableException;
 use LibreNMS\Exceptions\HostUnreachablePingException;
 use LibreNMS\Exceptions\InvalidPortAssocModeException;
 use LibreNMS\Exceptions\SnmpVersionUnsupportedException;
+use LibreNMS\SNMP;
 
 function set_debug($debug)
 {
@@ -99,38 +100,47 @@ function getHostOS($device)
 {
     global $config;
 
-    $sysDescr    = snmp_get($device, "SNMPv2-MIB::sysDescr.0", "-Ovq");
-    $sysObjectId = snmp_get($device, "SNMPv2-MIB::sysObjectID.0", "-Ovqn");
+    // Direct translation
+//    $sysDescr = SNMP::get($device, 'SNMPv2-MIB::sysDescr.0')->value;
+//    $sysObjectId = SNMP::get($device, 'SNMPv2-MIB::sysObjectID.0')->value;
 
-    d_echo("| $sysDescr | $sysObjectId | \n");
+    // Single get
+    $oids = array('SNMPv2-MIB::sysDescr.0', 'SNMPv2-MIB::sysObjectID.0');
+    $data = SNMP::get($device, $oids);
+    if ($data->hasError()) {
+        // FIXME: is it correct to return generic if there is an snmp error?
+        return 'generic';
+    } else {
+        list($sysDescr, $sysObjectId) = $data->pluck('value');
 
-    // check yaml files
-    $pattern = $config['install_dir'] . '/includes/definitions/*.yaml';
-    foreach (glob($pattern) as $file) {
-        $tmp = Symfony\Component\Yaml\Yaml::parse(
-            file_get_contents($file)
-        );
-        if (isset($tmp['discovery']) && is_array($tmp['discovery'])) {
-            foreach ($tmp['discovery'] as $item) {
-                // check each item individually, if all the conditions in that item are true, we have a match
-                if (checkDiscovery($item, $sysObjectId, $sysDescr)) {
-                    return $tmp['os'];
+        // check yaml files
+        $pattern = $config['install_dir'] . '/includes/definitions/*.yaml';
+        foreach (glob($pattern) as $file) {
+            $tmp = Symfony\Component\Yaml\Yaml::parse(
+                file_get_contents($file)
+            );
+            if (isset($tmp['discovery']) && is_array($tmp['discovery'])) {
+                foreach ($tmp['discovery'] as $item) {
+                    // check each item individually, if all the conditions in that item are true, we have a match
+                    if (checkDiscovery($item, $sysObjectId, $sysDescr)) {
+                        return $tmp['os'];
+                    }
                 }
             }
         }
-    }
 
-    // check include files
-    $os = null;
-    $pattern = $config['install_dir'] . '/includes/discovery/os/*.inc.php';
-    foreach (glob($pattern) as $file) {
-        include $file;
-        if (isset($os)) {
-            return $os;
+        // check include files
+        $os = null;
+        $pattern = $config['install_dir'] . '/includes/discovery/os/*.inc.php';
+        foreach (glob($pattern) as $file) {
+            include $file;
+            if (isset($os)) {
+                return $os;
+            }
         }
-    }
 
-    return 'generic';
+        return 'generic';
+    }
 }
 
 /**
@@ -179,6 +189,10 @@ function checkDiscovery($array, $sysObjectId, $sysDescr)
  */
 function preg_match_any($subject, $regexes)
 {
+    if (empty($subject)) {
+        return false;
+    }
+
     foreach ((array)$regexes as $regex) {
         if (preg_match($regex, $subject)) {
             return true;
