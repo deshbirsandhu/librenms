@@ -25,7 +25,10 @@
 
 namespace LibreNMS\SNMP\Engines;
 
+use Illuminate\Support\Collection;
+use LibreNMS\SNMP\Cache;
 use LibreNMS\SNMP\Contracts\SnmpEngine;
+use LibreNMS\SNMP\OIDData;
 
 abstract class Base implements SnmpEngine
 {
@@ -48,6 +51,61 @@ abstract class Base implements SnmpEngine
             return $device[$setting];
         } elseif (isset($config['snmp'][$setting])) {
             return $config['snmp'][$setting];
+        }
+
+        return '';
+    }
+
+    /**
+     * Get a collection of cache keys for the specified oids
+     *
+     * @param array|string $oids
+     * @param string $tag Tag to group the cache by, usually Class::function
+     * @param array $device
+     * @return Collection Collection of keys indexed by oid
+     */
+    protected function getCacheKeys($oids, $tag, $device)
+    {
+        return collect($oids)->combine(collect($oids)->map(function ($oid) use ($tag, $device) {
+            return Cache::genKey($tag, $oid, $device['device_id'], $device['community']);
+        }));
+    }
+
+    /**
+     * Print an approximation of NetSNMP output
+     * This will NOT match NetSNMP output exactly
+     *
+     * @param Collection|array $data should be indexed by the key or oid
+     */
+    protected function printDebug($data)
+    {
+        global $debug;
+        if (!$debug || !$data instanceof Collection) {
+            return;
+        }
+
+        foreach ($data as $key => $oid_data) {
+            $parts = $info = explode('_', $key);
+            if (count($parts) == 3) {
+                list($cacher, $device_id, $oids) = $parts;
+                $snmpinfo = "Cached by $cacher device_id:$device_id oids:$oids";
+            } else {
+                $snmpinfo = $key;
+            }
+            c_echo("SNMP[%c$snmpinfo%n]\n[");
+
+            if (is_string($oid_data)) {
+                echo $oid_data;
+            } else {
+                $oid_data->each(function ($entry) {
+                    if ($entry instanceof OIDData) {
+                        echo "{$entry->oid} = {$entry->type}: {$entry->value}\n";
+                    } else {
+                        var_dump($entry);
+                    }
+                });
+            }
+            echo "]\n";
         }
     }
 }

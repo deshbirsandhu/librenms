@@ -72,13 +72,14 @@ class Parse
     /**
      * @param string $message message to parse to error code
      * @return int LibreNMS\SNMP error code
+     * @throws \Exception If the error cannot be parsed
      */
     public static function errorMessage($message)
     {
-        if (starts_with($message, 'Timeout: No Response from ')) {
+        if (str_contains($message, 'Timeout: No Response from ')) {
             return SNMP::ERROR_UNREACHABLE;
         }
-        return -1;
+        throw new \Exception("Unknown error message: $message");
     }
 
     /**

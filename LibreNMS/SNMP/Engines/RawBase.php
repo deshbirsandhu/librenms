@@ -43,16 +43,10 @@ abstract class RawBase extends Base
     public function get($device, $oids, $mib = null, $mib_dir = null)
     {
         try {
-            $oid_cache_keys = collect($oids)->combine(collect($oids)->map(function ($oid) use ($device) {
-                return Cache::genKey('RawBase::get', $oid, $device['device_id'], $device['community']);
-            }));
+            $oid_cache_keys = $this->getCacheKeys($oids, 'RawBase::get', $device);
 
-            // retrieve cached data
-            $cached = $oid_cache_keys->filter(function ($key) {
-                return Cache::has($key);
-            })->map(function ($key) {
-                return Cache::get($key);
-            });
+            $cached = Cache::multiGet($oid_cache_keys);
+            $this->printDebug($cached);
 
             $oids_to_fetch = $oid_cache_keys->diffKeys($cached)->keys();
             $fetched = $oids_to_fetch
@@ -72,7 +66,7 @@ abstract class RawBase extends Base
             })->values();
 
             return (count((array)$oids) == 1 && $result->count() == 1) ? $result->first() : DataSet::make($result);
-        } catch (\Exception $e) {
+        } catch (\SNMPException $e) {
             return DataSet::makeError(Parse::errorMessage($e->getMessage()));
         }
     }

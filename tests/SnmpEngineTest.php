@@ -39,6 +39,42 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
         }
     }
 
+    public function testUnreachable()
+    {
+        $unreachable = Mock::genDevice('unreachable', 1);
+        $unreachable['timeout'] = 0.001;
+        $result = SNMP::get($unreachable, 'sysDescr.0');
+//        $this->assertNotNull($result);
+        $this->assertTrue($result->hasError());
+        $this->assertEquals(SNMP::ERROR_UNREACHABLE, $result->getError());
+    }
+
+    public function testNonExistantOidGet()
+    {
+        $this->checkSnmpsim();
+        $result = SNMP::get(Mock::genDevice('unit_tests'), '.1.3.4.5.6.7.236.7');
+        $this->assertTrue($result->hasError(), 'Error is not set');
+        $this->assertEquals(
+            SNMP::ERROR_NO_SUCH_OID,
+            $result->getError(),
+            'Error does not match expected: ' . $result->getErrorMessage()
+        );
+        $this->assertNull($result['value'], 'The value attribute must be null');
+    }
+
+    public function testNonExistantOidWalk()
+    {
+        $this->checkSnmpsim();
+        $result = SNMP::walk(Mock::genDevice('unit_tests'), '.1.3.4.5.6.7.236.8')->first();
+        $this->assertTrue($result->hasError(), 'Error is not set');
+        $this->assertEquals(
+            SNMP::ERROR_NO_SUCH_OID,
+            $result->getError(),
+            'Error does not match expected: ' . $result->getErrorMessage()
+        );
+        $this->assertNull($result['value'], 'The value attribute must be null');
+    }
+
     public function testSnmpTranslate()
     {
         $this->assertEquals('', SNMP::translate(Mock::genDevice(), ''));
@@ -82,10 +118,8 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
 
     public function testSnmpTranslateNumeric()
     {
-        global $debug;
         $this->assertEquals('', SNMP::translateNumeric(Mock::genDevice(), ''));
         $this->assertEquals(array(), SNMP::translateNumeric(Mock::genDevice(), array()));
-//        $debug = true;
         $this->assertEquals('.1.3.6.1.2.1.1.5.0', SNMP::translateNumeric(Mock::genDevice(), 'sysName.0'));
 
         $oids = array('SNMPv2-MIB::system', 'UCD-SNMP-MIB::ssCpuUser.0');
@@ -99,20 +133,7 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
     public function testSnmpGet()
     {
         $this->checkSnmpsim();
-        $unreachable = Mock::genDevice('unreachable', 1);
-        $unreachable['timeout'] = 0.001;
-        $result = SNMP::get($unreachable, 'sysDescr.0');
-//        $this->assertNotNull($result);
-        $this->assertTrue($result->hasError());
-        $this->assertEquals(SNMP::ERROR_UNREACHABLE, $result->getError());
-
-        // set up a device
         $device = Mock::genDevice('unit_tests');
-
-
-//        var_dump(SNMP::get($device, 'sysDescr.0')->first()->all());
-//        $this->assertEquals(DataSet::make(OIDData::make()), SNMP::get($device, 'sysDescr.0'));
-
         $expected = OIDData::make(array(
             'oid' => 'SNMPv2-MIB::sysDescr.0',
             'base_oid' => 'SNMPv2-MIB::sysDescr',
@@ -123,7 +144,6 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
             'mib' => 'SNMPv2-MIB',
             'name' => 'sysDescr',
         ));
-        set_debug(true);
 
         $results = SNMP::get($device, 'SNMPv2-MIB::sysDescr.0');
         $this->assertEquals($expected, $results);
@@ -131,6 +151,7 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
 
     public function testQuotes()
     {
+        $this->checkSnmpsim();
         $expected = OIDData::make(array(
             'oid' => 'SNMPv2-MIB::sysContact.0',
             'base_oid' => 'SNMPv2-MIB::sysContact',
@@ -144,22 +165,6 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
 
         $results = SNMP::get(Mock::genDevice('unit_tests'), 'SNMPv2-MIB::sysContact.0');
         $this->assertEquals($expected, $results);
-    }
-
-    public function testNonExistantOidGet()
-    {
-        $result = SNMP::get(Mock::genDevice('unit_tests'), '.1.3.4.5.6.7.236.7');
-        $this->assertTrue($result->hasError());
-        $this->assertEquals($result->getError(), SNMP::ERROR_NO_SUCH_OID);
-        $this->assertNull($result['value']);
-    }
-
-    public function testNonExistantOidWalk()
-    {
-        $result = SNMP::walk(Mock::genDevice('unit_tests'), '.1.3.4.5.6.7.236.8')->first();
-        $this->assertTrue($result->hasError());
-        $this->assertEquals($result->getError(), SNMP::ERROR_NO_SUCH_OID);
-        $this->assertNull($result['value']);
     }
 
     public function testEmbeddedString()

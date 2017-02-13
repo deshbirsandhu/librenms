@@ -49,6 +49,7 @@
 
 namespace LibreNMS\SNMP;
 
+use Illuminate\Support\Collection;
 use phpFastCache\CacheManager;
 
 class Cache
@@ -88,7 +89,7 @@ class Cache
      */
     public static function getOrFetch($key, $callback, $time = null)
     {
-        global $config, $debug;
+        global $config;
 
         if (!$config['snmp']['cache']) {
             return call_user_func($callback);
@@ -110,15 +111,29 @@ class Cache
             return $result;
         }
 
-        self::printDebug($key, $cached_result);
         return $cached_result;
     }
 
     public static function get($key)
     {
-        $data = CacheManager::getInstance()->get($key);
-        self::printDebug($key, $data);
-        return $data;
+        return CacheManager::getInstance()->get($key);
+    }
+
+    /**
+     * Return a collection of cached data from the specified keys
+     * The returned collection will retain the same indexes.
+     * If no data is cached, that entry will be removed from the result
+     *
+     * @param Collection $keys
+     * @return Collection key->cached data where key is the same as the input
+     */
+    public static function multiGet(Collection $keys)
+    {
+        return $keys->map(function ($key) {
+            return Cache::get($key);
+        })->reject(function ($data) {
+            return is_null($data);
+        });
     }
 
     public static function put($key, $value, $time = null)
@@ -155,29 +170,5 @@ class Cache
     public static function genKey($group, $oids, $device_id = '', $extra = '')
     {
         return "{$group}_{$device_id}_" . implode('-', (array)$oids) . "_{$extra}";
-    }
-
-    /**
-     * Print an approximation of NetSNMP output
-     * This will NOT match NetSNMP output exactly
-     *
-     * @param string $key The cache key
-     * @param DataSet|string $data The returned data
-     */
-    private static function printDebug($key, $data)
-    {
-        global $debug;
-        if ($debug) {
-            list($cacher, $device_id, $oids) = $info = explode('_', $key);
-            c_echo("SNMP[%cCached by $cacher device_id:$device_id oids:$oids%n]\n[");
-            if (is_string($data)) {
-                echo $data;
-            } else {
-                $data->each(function ($entry) {
-                    echo "{$entry->oid} = {$entry->type}: {$entry->value}\n";
-                });
-            }
-            echo "]\n";
-        }
     }
 }

@@ -25,6 +25,7 @@ namespace LibreNMS\SNMP\Engines;
 
 use LibreNMS\Proc;
 use LibreNMS\SNMP;
+use LibreNMS\SNMP\Cache;
 use LibreNMS\SNMP\Contracts\SnmpTranslator;
 use LibreNMS\SNMP\Format;
 
@@ -72,6 +73,12 @@ class NetSnmp extends RawBase implements SnmpTranslator
      */
     public function translate($device, $oids, $options = null, $mib = null, $mib_dir = null)
     {
+//        $oid_cache_keys = $this->getCacheKeys($oids, 'NetSnmp::translate', $device);
+
+        // retrieve cached data
+//        $cached = Cache::multiGet($oid_cache_keys);
+        // TODO use cache
+
         $data = collect($oids);
         $cmd  = 'snmptranslate '.$this->getMibDir($mib_dir, $device);
         if (isset($mib)) {
@@ -98,40 +105,31 @@ class NetSnmp extends RawBase implements SnmpTranslator
      */
     public function translateNumeric($device, $oids, $mib = null, $mib_dir = null)
     {
-        $formmatted_oids = collect($oids)->map(function ($oid) use ($mib) {
+        // FIXME is this necessary?
+        $formmatted_oids = collect($oids)->combine($oids)->map(function ($oid) use ($mib) {
             return Format::compoundOid($oid, $mib);
         });
 
-        $result = collect();
-        foreach ($formmatted_oids as $oid) {
-            if (Format::isNumericOid($oid)) {
-                $result[$oid] = $oid;
-            } elseif ($this->oidIsCached($oid)) {
-                $result[$oid] = $this->getCachedOid($oid);
-            } else {
-                $result[$oid] = null;
-            }
-        }
+        $numeric = $formmatted_oids->filter(function ($oid) {
+            return Format::isNumericOid($oid);
+        });
 
-        $oids_to_translate = $result->filter(function ($item) {
-            return is_null($item);
-        })->keys();
+        $cache_keys = $this->getCacheKeys($formmatted_oids, 'NetSnmp::translateNumeric', $device);
+        $cached = Cache::multiGet($cache_keys);
+
+        $result = $numeric->merge($cached);
+
+        $oids_to_translate = $formmatted_oids->diffKeys($result)->values();
 
         $translated = SNMP::translate($device, $oids_to_translate->all(), '-IR -On', $mib, $mib_dir);
+
+        $cache_keys->union($oids_to_translate->combine($translated))->each(function ($data, $key) {
+            Cache::put($key, $data);
+        });
 
         $result = $formmatted_oids->combine($result->merge($translated)->all());
 
         return is_array($oids) ? $result->all() : $result->first();
-    }
-
-    private function oidIsCached($oid)
-    {
-        return array_key_exists($oid, self::$cached_translations);
-    }
-
-    private function getCachedOid($oid)
-    {
-        self::$cached_translations[$oid];
     }
 
     private static function exec($cmd)
@@ -146,20 +144,11 @@ class NetSnmp extends RawBase implements SnmpTranslator
         d_echo("[$output]\n");
 
         if (!empty($stderr)) {
-            throw new \Exception($stderr);
+            throw new \SNMPException("[$cmd]\n$stderr");
         }
 
         return $output;
     }
-
-    private static $cached_translations = array(
-        'SNMPv2-MIB::sysDescr.0' => '.1.3.6.1.2.1.1.1.0',
-        'SNMPv2-MIB::sysObjectID.0' => '.1.3.6.1.2.1.1.2.0',
-        'ENTITY-MIB::entPhysicalDescr.1' => '.1.3.6.1.2.1.47.1.1.1.1.2.1',
-        'ENTITY-MIB::entPhysicalMfgName.1' => '.1.3.6.1.2.1.47.1.1.1.1.12.1',
-        'SML-MIB::product-Name.0' => '.1.3.6.1.4.1.2.6.182.3.3.1.0',
-        'GAMATRONIC-MIB::psUnitManufacture.0' => '.1.3.6.1.4.1.6050.1.1.2.0',
-    );
 
     /**
      * Generate the mib search directory argument for snmpcmd
@@ -283,7 +272,7 @@ class NetSnmp extends RawBase implements SnmpTranslator
         $cmd .= $mib ? " -m $mib" : '';
         $cmd .= self::getMibDir($mibdir, $device);
         $cmd .= isset($timeout) ? " -t $timeout" : '';
-        $cmd .= isset($retries) ? " -r $retries" : '';
+        $cmd .= (isset($retries) && is_numeric($retries))? " -r $retries" : '';
         $cmd .= ' ' . $device['transport'] . ':' . $device['hostname'] . ':' . $device['port'];
         $cmd .= " $oids";
 
