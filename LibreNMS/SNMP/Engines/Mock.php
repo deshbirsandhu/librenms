@@ -26,6 +26,8 @@ namespace LibreNMS\SNMP\Engines;
 use Illuminate\Support\Collection;
 use LibreNMS\SNMP;
 use LibreNMS\SNMP\DataSet;
+use LibreNMS\SNMP\Format;
+use LibreNMS\SNMP\OIDData;
 use LibreNMS\SNMP\Parse;
 
 class Mock extends FormattedBase
@@ -69,9 +71,9 @@ class Mock extends FormattedBase
         });
 
         // insert errors for missing data
-        return $numeric_oids->map(function ($oid) use ($data) {
+        return $numeric_oids->map(function ($oid) use ($data, $device, $mib) {
             if ($data->has($oid)) {
-                return $data[$oid];
+                return Mock::formatOutput($data[$oid], $device, $mib);
             } else {
                 return SNMP\OIDData::makeError(
                     SNMP::ERROR_NO_SUCH_OID,
@@ -79,6 +81,28 @@ class Mock extends FormattedBase
                 );
             }
         })->values();
+    }
+
+    /**
+     * Tweaks OIDData to match the same output as real snmp modules
+     *
+     * @param OIDData $oid_data
+     * @param array $device
+     * @param null $mib
+     * @return OIDData|static
+     */
+    private static function formatOutput(OIDData $oid_data, $device = array(), $mib = null)
+    {
+        $type = $oid_data['type'];
+
+        if ($type == 'hex-string') {
+            $oid_data = $oid_data->merge(Parse::stringType(
+                Format::hexStringAsString($oid_data['oid'], $oid_data['value'])
+            ));
+        } elseif ($type == 'oid') {
+            $oid_data['value'] = '.' . ltrim($oid_data['value'], '.');
+        }
+        return $oid_data;
     }
 
     private function getSnmpRec($community)
@@ -124,7 +148,7 @@ class Mock extends FormattedBase
                 ->map(function (SNMP\OIDData $item) use ($device) {
                     // add oid variables to the data
                     $oid = SNMP::translate($device, $item['oid']);
-                    return $item->merge(Parse::rawOID($oid));
+                    return Mock::formatOutput($item->merge(Parse::rawOID($oid)));
                 });
             if ($data->isEmpty()) {
                 $results[] = SNMP\OIDData::makeError(
@@ -160,5 +184,14 @@ class Mock extends FormattedBase
             'os' => 'generic',
             'os_group' => '',
         );
+    }
+
+    public static function genOIDData($oid, $type, $data)
+    {
+        $result = Parse::rawOID($oid);
+
+        $result = $result->merge(Parse::value($type, $data));
+
+        return $result;
     }
 }

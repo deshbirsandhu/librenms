@@ -165,7 +165,7 @@ class NetSnmp extends RawBase implements SnmpTranslator
 
         // get mib directories from the device
         $extra_dir = '';
-        if (file_exists($config['mib_dir'] . '/' . $device['os'])) {
+        if (isset($device['os']) && file_exists($config['mib_dir'] . '/' . $device['os'])) {
             $extra_dir .= $config['mib_dir'] . '/' . $device['os'] . ':';
         }
 
@@ -173,7 +173,7 @@ class NetSnmp extends RawBase implements SnmpTranslator
             $extra_dir .= $config['mib_dir'] . '/' . $device['os_group'] . ':';
         }
 
-        if (isset($config['os_groups'][$device['os_group']]['mib_dir'])) {
+        if (isset($device['os_group']) && isset($config['os_groups'][$device['os_group']]['mib_dir'])) {
             if (is_array($config['os_groups'][$device['os_group']]['mib_dir'])) {
                 foreach ($config['os_groups'][$device['os_group']]['mib_dir'] as $k => $dir) {
                     $extra_dir .= $config['mib_dir'] . '/' . $dir . ':';
@@ -181,7 +181,7 @@ class NetSnmp extends RawBase implements SnmpTranslator
             }
         }
 
-        if (isset($config['os'][$device['os']]['mib_dir'])) {
+        if (isset($device['os']) && isset($config['os'][$device['os']]['mib_dir'])) {
             if (is_array($config['os'][$device['os']]['mib_dir'])) {
                 foreach ($config['os'][$device['os']]['mib_dir'] as $k => $dir) {
                     $extra_dir .= $config['mib_dir'] . '/' . $dir . ':';

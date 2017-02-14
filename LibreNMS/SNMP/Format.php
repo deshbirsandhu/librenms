@@ -57,12 +57,11 @@ class Format
         ));
     }
 
-    public static function oidType($numeric_oid, $oid = null)
+    public static function oidType($numeric_oid)
     {
         $data = OIDData::make(array(
             'type' => 'oid',
             'value' => $numeric_oid,
-            'raw_value' => is_null($oid) ? $numeric_oid : $oid
         ));
 
         return $data;
@@ -144,7 +143,7 @@ class Format
     public static function hexStringAsString($oid, $hex)
     {
         // we do not understand MIBs, so approximate it...
-        if (starts_with(ltrim($oid, '.'), '1.3.6.1.2.1.4.35.1.4')) {
+        if (starts_with(ltrim($oid, '.'), array('1.3.6.1.2.1.4.35.1.4', 'IP-MIB::ipNetToPhysicalPhysAddress'))) {
             return mac_clean_to_readable($hex);
         }
 

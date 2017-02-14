@@ -25,6 +25,7 @@
 
 namespace LibreNMS;
 
+use LibreNMS\Exceptions\InvalidOidFormatException;
 use LibreNMS\SNMP\Cache;
 use LibreNMS\SNMP\Contracts\SnmpEngine;
 use LibreNMS\SNMP\Contracts\SnmpTranslator;
@@ -95,9 +96,13 @@ class SNMP
      * @param string $mib Additional mibs to search, optionally you can specify full oid names
      * @param string $mib_dir Additional mib directory, should be rarely needed, see definitions to add per os mib dirs
      * @return DataSet|OIDData collection of results
+     * @throws InvalidOidFormatException
      */
     public static function get($device, $oids, $mib = null, $mib_dir = null)
     {
+        if (is_string($oids) && str_contains($oids, ' ')) {
+            throw new InvalidOidFormatException("Multiple OIDs must be specified in an array: $oids");
+        }
         $result = SNMP::getInstance()->get($device, $oids, $mib, $mib_dir);
         return (count((array)$oids) == 1 && $result->count() == 1) ? $result->first() : $result;
     }
@@ -122,9 +127,13 @@ class SNMP
      * @param string $mib Additional mibs to search, optionally you can specify full oid names
      * @param string $mib_dir Additional mib directory, should be rarely needed, see definitions to add per os mib dirs
      * @return DataSet collection of results
+     * @throws InvalidOidFormatException
      */
     public static function walk($device, $oids, $mib = null, $mib_dir = null)
     {
+        if (is_string($oids) && str_contains($oids, ' ')) {
+            throw new InvalidOidFormatException("Multiple OIDs must be specified in an array: $oids");
+        }
         return SNMP::getInstance()->walk($device, $oids, $mib, $mib_dir);
     }
 

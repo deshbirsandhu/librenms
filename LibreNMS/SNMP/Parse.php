@@ -153,16 +153,6 @@ class Parse
     public static function snmprec($entry)
     {
         list($oid, $type, $data) = explode('|', $entry, 3);
-
-        if ($type == '4x') {
-            $type = 4;
-            $data = Format::hexStringAsString($oid, $data);
-        }
-
-        if ($type == 6) {
-            $data = '.' . ltrim($data, '.');
-        }
-
         return OIDData::makeType($oid, self::getSnmprecTypeString($type), $data);
     }
 
@@ -222,7 +212,7 @@ class Parse
 
     public static function oidType($input)
     {
-        return Format::oidType(SNMP::translateNumeric(null, $input), $input);
+        return Format::oidType(SNMP::translateNumeric(null, $input));
     }
 
     /**
