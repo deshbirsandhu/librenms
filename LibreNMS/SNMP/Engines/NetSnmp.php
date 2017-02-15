@@ -23,9 +23,9 @@
 
 namespace LibreNMS\SNMP\Engines;
 
+use LibreNMS\Cache;
 use LibreNMS\Proc;
 use LibreNMS\SNMP;
-use LibreNMS\SNMP\Cache;
 use LibreNMS\SNMP\Contracts\SnmpTranslator;
 use LibreNMS\SNMP\Format;
 
@@ -34,7 +34,7 @@ class NetSnmp extends RawBase implements SnmpTranslator
     /**
      * @param array $device
      * @param string|array $oids single or array of oids to walk
-     * @param null $options Options to sent to snmpget
+     * @param null $options OptionsR to sent to snmpget
      * @param string $mib Additional mibs to search, optionally you can specify full oid names
      * @param string $mib_dir Additional mib directory, should be rarely needed, see definitions to add per os mib dirs
      * @return string exact results from snmpget

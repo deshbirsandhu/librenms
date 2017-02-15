@@ -26,7 +26,7 @@
 namespace LibreNMS\SNMP\Engines;
 
 use Illuminate\Support\Collection;
-use LibreNMS\SNMP\Cache;
+use LibreNMS\Cache;
 use LibreNMS\SNMP\Contracts\SnmpEngine;
 use LibreNMS\SNMP\OIDData;
 

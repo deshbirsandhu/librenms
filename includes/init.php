@@ -23,7 +23,7 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
-use LibreNMS\SNMP\Cache;
+use LibreNMS\Cache;
 
 /**
  * @param array $modules Which modules to initialize

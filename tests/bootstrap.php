@@ -44,7 +44,7 @@ if (getenv('SNMPSIM')) {
     $config['snmp']['port'] = getenv('SNMPSIM');
 }
 
-\LibreNMS\SNMP\Cache::clear();
+\LibreNMS\Cache::clear();
 
 ini_set('display_errors', 1);
 error_reporting(E_ALL & ~E_WARNING);

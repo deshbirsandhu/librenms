@@ -25,7 +25,7 @@
 
 namespace LibreNMS\SNMP\Engines;
 
-use LibreNMS\SNMP\Cache;
+use LibreNMS\Cache;
 use LibreNMS\SNMP\DataSet;
 use LibreNMS\SNMP\Parse;
 

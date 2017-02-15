@@ -26,7 +26,6 @@
 namespace LibreNMS;
 
 use LibreNMS\Exceptions\InvalidOidFormatException;
-use LibreNMS\SNMP\Cache;
 use LibreNMS\SNMP\Contracts\SnmpEngine;
 use LibreNMS\SNMP\Contracts\SnmpTranslator;
 use LibreNMS\SNMP\DataSet;
