@@ -30,24 +30,40 @@ use phpFastCache\CacheManager;
 
 class Cache
 {
+    /**
+     * Configure and initialize the cache
+     * Uses memcache , apc if available, falls back to file cache
+     */
     public static function setup()
     {
+        // determine caching method
+        if (Config::get('memcached.enable')) {
+            $storage = 'memcache';
+        } elseif (extension_loaded('apc') && ini_get('apc.enabled')) {
+            $storage = 'apc';
+        } else {
+            $storage = 'files';
+        }
+
         // Setup File Path on your config files
         $setup = array(
-            'storage'  => Config::get('memcached.enable') ? 'memcache' : 'files',
-            'path'     => Config::get('snmp'.'cache_dir'),
+            'storage' => $storage,
+            'path' => Config::get('cache.dir'),
 //            'allow_search' => true,
-            'server'   => array(
+            'server' => array(
                 array(Config::get('memcached.host'), Config::get('memcached.port'), 1)
             ),
             'fallback' => array(
                 'memcache' => 'files', //if memcached isn't installed use file system instead
-                'apc'      => 'files', //if apc isn't installed use file system instead
+                'apc' => 'files', //if apc isn't installed use file system instead
             )
         );
         CacheManager::setup($setup);
     }
 
+    /**
+     * Remove all data from the cache
+     */
     public static function clear()
     {
         CacheManager::getInstance()->clean();
@@ -59,12 +75,12 @@ class Cache
      *
      * @param string $key key used to identify the data
      * @param callable $callback function that will fetch the data if it is not cached
-     * @param int $time override default cache time
+     * @param int $time in seconds (0 = forever), uses cache.time if unset
      * @return mixed
      */
     public static function remember($key, $callback, $time = null)
     {
-        if (!Config::get('cache')) {
+        if (self::cacheDisabled()) {
             return call_user_func($callback);
         }
 
@@ -74,11 +90,7 @@ class Cache
 
         if (is_null($cached_result)) {
             $result = call_user_func($callback);
-            if (is_null($time)) {
-                $time = Config::get('snmp.cache_time');
-            }
-
-            $cache->set($key, $result, $time);
+            $cache->set($key, $result, self::getCacheTime($time));
             d_echo("Cached $key\n");
             return $result;
         }
@@ -86,13 +98,30 @@ class Cache
         return $cached_result;
     }
 
-    public static function get($key)
+    /**
+     * Check if the cache should be disabled
+     *
+     * @return bool
+     */
+    private static function cacheDisabled()
     {
-        if (!Config::get('cache')) {
-            return null;
-        }
+        global $debug;
+        return $debug || !Config::get('cache.enable');
+    }
 
-        return CacheManager::getInstance()->get($key);
+    /**
+     * Check if the specified time is valid
+     * return it or the system cache.time
+     *
+     * @param int $time
+     * @return int
+     */
+    private static function getCacheTime($time)
+    {
+        if (is_null($time)) {
+            return Config::get('cache.time');
+        }
+        return $time;
     }
 
     /**
@@ -105,7 +134,7 @@ class Cache
      */
     public static function multiGet(Collection $keys)
     {
-        if (!Config::get('cache')) {
+        if (self::cacheDisabled()) {
             return null;
         }
 
@@ -116,13 +145,32 @@ class Cache
         });
     }
 
-    public static function put($key, $value, $time = null)
+    /**
+     * Retrieve a value from the cache
+     * Non-existent items will return null
+     *
+     * @param string $key key used to identify the data
+     * @return mixed|null
+     */
+    public static function get($key)
     {
-        if (is_null($time)) {
-            $time = Config::get('snmp.cache_time');
+        if (self::cacheDisabled()) {
+            return null;
         }
 
-        CacheManager::getInstance()->set($key, $value, $time);
+        return CacheManager::getInstance()->get($key);
+    }
+
+    /**
+     * Save a value to the cache
+     *
+     * @param string $key key used to identify the data
+     * @param mixed $value the data to store
+     * @param int $time in seconds (0 = forever), uses cache.time if unset
+     */
+    public static function put($key, $value, $time = null)
+    {
+        CacheManager::getInstance()->set($key, $value, self::getCacheTime($time));
         d_echo("Cached $key\n");
     }
 
@@ -134,7 +182,7 @@ class Cache
      */
     public static function has($key)
     {
-        if (!Config::get('cache')) {
+        if (self::cacheDisabled()) {
             return false;
         }
 

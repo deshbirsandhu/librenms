@@ -129,9 +129,9 @@ class NetSnmp extends RawBase implements SnmpTranslator
 
         $translated = SNMP::translate($device, $oids_to_translate->all(), '-IR -On', $mib, $mib_dir);
 
-        // save the translated oids to the cache
+        // save the translated oids to the cache for one week
         $cache_keys->union($oids_to_translate->combine($translated))->each(function ($data, $key) {
-            Cache::put($key, $data);
+            Cache::put($key, $data, 604800);
         });
 
         // collect all of the results
