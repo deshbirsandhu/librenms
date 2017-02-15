@@ -165,7 +165,7 @@ class SNMP
         }
 
         $key = Cache::genKey(__FUNCTION__, $oids, '', $options);
-        $result = (array)Cache::getOrFetch($key, function () use ($device, $oids, $options, $mib, $mib_dir) {
+        $result = (array)Cache::remember($key, function () use ($device, $oids, $options, $mib, $mib_dir) {
             return SNMP::getTranslator()->translate($device, $oids, $options, $mib, $mib_dir);
         }, 86400);
 
@@ -186,7 +186,7 @@ class SNMP
         }
 
         $key = Cache::genKey(__FUNCTION__, $oids);
-        $result = (array)Cache::getOrFetch($key, function () use ($device, $oids, $mib, $mib_dir) {
+        $result = (array)Cache::remember($key, function () use ($device, $oids, $mib, $mib_dir) {
             return SNMP::getTranslator()->translateNumeric($device, $oids, $mib, $mib_dir);
         }, 86400);
 

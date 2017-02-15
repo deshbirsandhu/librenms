@@ -32,14 +32,13 @@ class Cache
 {
     public static function setup()
     {
-        global $config;
         // Setup File Path on your config files
         $setup = array(
-            'storage'  => $config['memcached']['enable'] ? 'memcache' : 'files',
-            'path'     => $config['snmp']['cache_dir'],
+            'storage'  => Config::get('memcached.enable') ? 'memcache' : 'files',
+            'path'     => Config::get('snmp'.'cache_dir'),
 //            'allow_search' => true,
             'server'   => array(
-                array($config['memcached']['host'], $config['memcached']['port'], 1)
+                array(Config::get('memcached.host'), Config::get('memcached.port'), 1)
             ),
             'fallback' => array(
                 'memcache' => 'files', //if memcached isn't installed use file system instead
@@ -63,11 +62,9 @@ class Cache
      * @param int $time override default cache time
      * @return mixed
      */
-    public static function getOrFetch($key, $callback, $time = null)
+    public static function remember($key, $callback, $time = null)
     {
-        global $config;
-
-        if (!$config['snmp']['cache']) {
+        if (!Config::get('cache')) {
             return call_user_func($callback);
         }
 
@@ -78,10 +75,11 @@ class Cache
         if (is_null($cached_result)) {
             $result = call_user_func($callback);
             if (is_null($time)) {
-                $time = $config['snmp']['cache_time'];
+                $time = Config::get('snmp.cache_time');
             }
 
             $cache->set($key, $result, $time);
+            d_echo("Cached $key\n");
             return $result;
         }
 
@@ -90,6 +88,10 @@ class Cache
 
     public static function get($key)
     {
+        if (!Config::get('cache')) {
+            return null;
+        }
+
         return CacheManager::getInstance()->get($key);
     }
 
@@ -103,6 +105,10 @@ class Cache
      */
     public static function multiGet(Collection $keys)
     {
+        if (!Config::get('cache')) {
+            return null;
+        }
+
         return $keys->map(function ($key) {
             return Cache::get($key);
         })->reject(function ($data) {
@@ -113,8 +119,7 @@ class Cache
     public static function put($key, $value, $time = null)
     {
         if (is_null($time)) {
-            global $config;
-            $time = $config['snmp']['cache_time'];
+            $time = Config::get('snmp.cache_time');
         }
 
         CacheManager::getInstance()->set($key, $value, $time);
@@ -129,6 +134,10 @@ class Cache
      */
     public static function has($key)
     {
+        if (!Config::get('cache')) {
+            return false;
+        }
+
         return CacheManager::getInstance()->isExisting($key);
     }
 

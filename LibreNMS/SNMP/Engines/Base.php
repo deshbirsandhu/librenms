@@ -27,6 +27,7 @@ namespace LibreNMS\SNMP\Engines;
 
 use Illuminate\Support\Collection;
 use LibreNMS\Cache;
+use LibreNMS\Config;
 use LibreNMS\SNMP\Contracts\SnmpEngine;
 use LibreNMS\SNMP\OIDData;
 
@@ -45,15 +46,11 @@ abstract class Base implements SnmpEngine
     //FIXME probably not the right place for this...
     protected function prepSetting($device, $setting)
     {
-        global $config;
-
         if (isset($device[$setting]) && is_numeric($device[$setting]) && $device[$setting] > 0) {
             return $device[$setting];
-        } elseif (isset($config['snmp'][$setting])) {
-            return $config['snmp'][$setting];
         }
 
-        return '';
+        return Config::get("snmp.$setting");
     }
 
     /**

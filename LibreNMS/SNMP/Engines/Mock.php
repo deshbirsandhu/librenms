@@ -24,6 +24,7 @@
 namespace LibreNMS\SNMP\Engines;
 
 use Illuminate\Support\Collection;
+use LibreNMS\Config;
 use LibreNMS\SNMP;
 use LibreNMS\SNMP\DataSet;
 use LibreNMS\SNMP\Format;
@@ -107,15 +108,13 @@ class Mock extends FormattedBase
 
     private function getSnmpRec($community)
     {
-        global $config;
-
         if ($this->snmpRecData->has($community)) {
             return $this->snmpRecData[$community];
         }
 
         $data = DataSet::make();
 
-        $contents = file_get_contents($config['install_dir'] . "/tests/snmpsim/$community.snmprec");
+        $contents = file_get_contents(Config::get('install_dir') . "/tests/snmpsim/$community.snmprec");
         $line = strtok($contents, "\r\n");
         while ($line !== false) {
             $entry = Parse::snmprec($line);

@@ -24,6 +24,7 @@
 namespace LibreNMS\SNMP\Engines;
 
 use LibreNMS\Cache;
+use LibreNMS\Config;
 use LibreNMS\Proc;
 use LibreNMS\SNMP;
 use LibreNMS\SNMP\Contracts\SnmpTranslator;
@@ -73,7 +74,7 @@ class NetSnmp extends RawBase implements SnmpTranslator
      */
     public function translate($device, $oids, $options = null, $mib = null, $mib_dir = null)
     {
-//        $oid_cache_keys = $this->getCacheKeys($oids, 'NetSnmp::translate', $device);
+//        $oid_cache_keys = $this->getCacheKeys($oids, 'NetSnmp::translate', $device, $options);
 
         // retrieve cached data
 //        $cached = Cache::multiGet($oid_cache_keys);
@@ -106,29 +107,37 @@ class NetSnmp extends RawBase implements SnmpTranslator
     public function translateNumeric($device, $oids, $mib = null, $mib_dir = null)
     {
         // FIXME is this necessary?
-        $formmatted_oids = collect($oids)->combine($oids)->map(function ($oid) use ($mib) {
+        // Format oids into Mib::oid format.
+        $formatted_oids = collect($oids)->combine($oids)->map(function ($oid) use ($mib) {
             return Format::compoundOid($oid, $mib);
         });
 
-        $numeric = $formmatted_oids->filter(function ($oid) {
+        // get the OIDs that are already numeric
+        $numeric = $formatted_oids->filter(function ($oid) {
             return Format::isNumericOid($oid);
         });
 
-        $cache_keys = $this->getCacheKeys($formmatted_oids, 'NetSnmp::translateNumeric', $device);
+        // get what we can from the cache
+        $cache_keys = $this->getCacheKeys($formatted_oids, 'NetSnmp::translateNumeric', $device);
         $cached = Cache::multiGet($cache_keys);
 
+        // merge numeric and cached results
         $result = $numeric->merge($cached);
 
-        $oids_to_translate = $formmatted_oids->diffKeys($result)->values();
+        // get the oids that are yet to be translated
+        $oids_to_translate = $formatted_oids->diffKeys($result)->values();
 
         $translated = SNMP::translate($device, $oids_to_translate->all(), '-IR -On', $mib, $mib_dir);
 
+        // save the translated oids to the cache
         $cache_keys->union($oids_to_translate->combine($translated))->each(function ($data, $key) {
             Cache::put($key, $data);
         });
 
-        $result = $formmatted_oids->combine($result->merge($translated)->all());
+        // collect all of the results
+        $result = $formatted_oids->combine($result->merge($translated)->all());
 
+        // only return an array if the requested oids was an array
         return is_array($oids) ? $result->all() : $result->first();
     }
 
@@ -155,50 +164,30 @@ class NetSnmp extends RawBase implements SnmpTranslator
      * If null return the default mib dir
      * If $mibdir is empty '', return an empty string
      *
-     * @param string $mibdir should be the name of the directory within $config['mib_dir']
+     * @param string $mibdir should be the name of the directory within the LibreNMS mib directory
      * @param array $device
      * @return string The option string starting with -M
      */
     private function getMibDir($mibdir = null, $device = array())
     {
-        global $config;
+        $base_mibdir = Config::get('mib_dir') . '/';
 
-        // get mib directories from the device
-        $extra_dir = '';
-        if (isset($device['os']) && file_exists($config['mib_dir'] . '/' . $device['os'])) {
-            $extra_dir .= $config['mib_dir'] . '/' . $device['os'] . ':';
-        }
+        $dirs = collect()
+            ->push($device['os'])
+            ->push($device['os_group'])
+            ->merge(Config::get("os_groups.{$device['os_group']}.mib_dir"))
+            ->merge(Config::get("os.{$device['os']}.mib_dir"))
+            ->push($mibdir)
+            ->map(function ($dir) use ($base_mibdir) {
+                return $base_mibdir . $dir;
+            })
+            ->push($base_mibdir)
+            ->unique()
+            ->filter(function ($dir) {
+                return is_dir($dir);
+            })->implode(':');
 
-        if (isset($device['os_group']) && file_exists($config['mib_dir'] . '/' . $device['os_group'])) {
-            $extra_dir .= $config['mib_dir'] . '/' . $device['os_group'] . ':';
-        }
-
-        if (isset($device['os_group']) && isset($config['os_groups'][$device['os_group']]['mib_dir'])) {
-            if (is_array($config['os_groups'][$device['os_group']]['mib_dir'])) {
-                foreach ($config['os_groups'][$device['os_group']]['mib_dir'] as $k => $dir) {
-                    $extra_dir .= $config['mib_dir'] . '/' . $dir . ':';
-                }
-            }
-        }
-
-        if (isset($device['os']) && isset($config['os'][$device['os']]['mib_dir'])) {
-            if (is_array($config['os'][$device['os']]['mib_dir'])) {
-                foreach ($config['os'][$device['os']]['mib_dir'] as $k => $dir) {
-                    $extra_dir .= $config['mib_dir'] . '/' . $dir . ':';
-                }
-            }
-        }
-
-        if (is_null($mibdir)) {
-            return " -M $extra_dir${config['mib_dir']}";
-        }
-
-        if (empty($mibdir)) {
-            return '';
-        }
-
-        // automatically set up includes
-        return " -M $extra_dir{$config['mib_dir']}/$mibdir:{$config['mib_dir']}";
+        return " -M $dirs";
     }
 
     /**
@@ -213,9 +202,7 @@ class NetSnmp extends RawBase implements SnmpTranslator
      */
     private function genSnmpgetCmd($device, $oids, $options = null, $mib = null, $mibdir = null)
     {
-        global $config;
-        $snmpcmd  = $config['snmpget'];
-        return self::genSnmpCmd($snmpcmd, $device, $oids, $options, $mib, $mibdir);
+        return self::genSnmpCmd(Config::get('snmpget'), $device, $oids, $options, $mib, $mibdir);
     }
 
     /**
@@ -230,18 +217,11 @@ class NetSnmp extends RawBase implements SnmpTranslator
      */
     private function genSnmpwalkCmd($device, $oids, $options = null, $mib = null, $mibdir = null)
     {
-        global $config;
-        if ($device['snmpver'] == 'v1' ||
-            (isset($device['os'], $config['os'][$device['os']]['nobulk']) &&
-            $config['os'][$device['os']]['nobulk'])
-        ) {
-            $snmpcmd = $config['snmpwalk'];
+        if ($device['snmpver'] == 'v1' || Config::get("os.{$device['os']}.nobulk")) {
+            $snmpcmd = Config::get('snmpwalk');
         } else {
-            $snmpcmd = $config['snmpbulkwalk'];
-            $max_repeaters = self::getMaxRepeaters($device);
-            if ($max_repeaters > 0) {
-                $snmpcmd .= " -Cr$max_repeaters ";
-            }
+            $snmpcmd = Config::get('snmpbulkwalk');
+            $snmpcmd .= self::getMaxRepeaters($device);
         }
         return self::genSnmpCmd($snmpcmd, $device, $oids, $options, $mib, $mibdir);
     }
@@ -249,7 +229,7 @@ class NetSnmp extends RawBase implements SnmpTranslator
     /**
      * Generate an snmp command
      *
-     * @param string $type either 'get' or 'walk'
+     * @param string $cmd either 'snmpget' or 'snmpwalk'
      * @param array $device the we will be connecting to
      * @param string $oids the oids to fetch, separated by spaces
      * @param string $options extra snmp command options, usually this is output options
@@ -272,26 +252,29 @@ class NetSnmp extends RawBase implements SnmpTranslator
         $cmd .= $mib ? " -m $mib" : '';
         $cmd .= self::getMibDir($mibdir, $device);
         $cmd .= isset($timeout) ? " -t $timeout" : '';
-        $cmd .= (isset($retries) && is_numeric($retries))? " -r $retries" : '';
+        $cmd .= isset($retries) ? " -r $retries" : '';
         $cmd .= ' ' . $device['transport'] . ':' . $device['hostname'] . ':' . $device['port'];
         $cmd .= " $oids";
 
         return $cmd;
     }
 
+    /**
+     * @param array $device
+     * @return string example " -Cr1"
+     */
     private function getMaxRepeaters($device)
     {
-        global $config;
-
         $max_repeaters = $device['snmp_max_repeaters'];
-
-        if (isset($max_repeaters) && $max_repeaters > 0) {
-            return $max_repeaters;
-        } elseif (isset($config['snmp']['max_repeaters']) && $config['snmp']['max_repeaters'] > 0) {
-            return $config['snmp']['max_repeaters'];
-        } else {
-            return false;
+        if ($max_repeaters < 1) {
+            $max_repeaters = Config::get('snmp.max_repeaters');
         }
+
+        if ($max_repeaters < 1) {
+            return '';
+        }
+
+        return  " -Cr$max_repeaters";
     }
 
     private function genAuth($device)
