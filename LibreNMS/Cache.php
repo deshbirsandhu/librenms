@@ -38,7 +38,7 @@ class Cache
     {
         // determine caching method
         if (Config::get('memcached.enable')) {
-            $storage = 'memcache';
+            $storage = 'memcached';
         } elseif (extension_loaded('apc') && ini_get('apc.enabled')) {
             $storage = 'apc';
         } else {
@@ -54,8 +54,10 @@ class Cache
                 array(Config::get('memcached.host'), Config::get('memcached.port'), 1)
             ),
             'fallback' => array(
-                'memcache' => 'files', //if memcached isn't installed use file system instead
-                'apc' => 'files', //if apc isn't installed use file system instead
+                'memcache' => 'files',
+                'predis' => 'files',
+                'redis' => 'files',
+                'apc' => 'files',
             )
         );
         CacheManager::setup($setup);
@@ -170,6 +172,10 @@ class Cache
      */
     public static function put($key, $value, $time = null)
     {
+        if (self::cacheDisabled()) {
+            return;
+        }
+
         CacheManager::getInstance()->set($key, $value, self::getCacheTime($time));
         d_echo("Cached $key\n");
     }

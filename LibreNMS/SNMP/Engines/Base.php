@@ -59,12 +59,18 @@ abstract class Base implements SnmpEngine
      * @param array|string $oids
      * @param string $tag Tag to group the cache by, usually Class::function
      * @param array $device
+     * @param string $extra extra data, such as command options
      * @return Collection Collection of keys indexed by oid
      */
-    protected function getCacheKeys($oids, $tag, $device)
+    protected function getCacheKeys($oids, $tag, $device, $extra = null)
     {
-        return collect($oids)->combine(collect($oids)->map(function ($oid) use ($tag, $device) {
-            return Cache::genKey($tag, $oid, $device['device_id'], $device['community']);
+        if ($extra) {
+            $extra = '_' . str_replace(' ', '_', $extra);
+        }
+        $extra .= '_' . $device['community'];  // mostly for snmpsim, so v3 is not relevant
+
+        return collect($oids)->combine(collect($oids)->map(function ($oid) use ($tag, $device, $extra) {
+            return Cache::genKey($tag, $oid, $device['device_id'], $extra);
         }));
     }
 

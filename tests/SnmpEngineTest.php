@@ -133,6 +133,7 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
         $unreachable['timeout'] = 0.001;
         $result = SNMP::get($unreachable, 'sysDescr.0');
 
+        $this->assertEmpty($result);
         $this->assertTrue($result->hasError());
         $this->assertEquals(SNMP::ERROR_UNREACHABLE, $result->getError());
     }
@@ -190,6 +191,19 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
             'SNMPv2-MIB:sysName.0' => '.1.3.6.1.2.1.1.5.0'
         );
         $this->assertEquals($expected, SNMP::translate(Mock::genDevice(), $oids, '-IR -On'));
+    }
+
+    public function testSnmpTranslateNumericToTextual()
+    {
+        $oids = array('.1.3.6.1.2.1.1', '.1.3.6.1.2.1.2.2', '.1.3.6.1.4.1.2636.3.40.1.1.1.1.2.1');
+        $expected = array(
+            '.1.3.6.1.2.1.1' => 'SNMPv2-MIB::system',
+            '.1.3.6.1.2.1.2.2' => 'IF-MIB::ifTable',
+            '.1.3.6.1.4.1.2636.3.40.1.1.1.1.2.1' => 'JUNIPER-ANALYZER-MIB::jnxAnalyzerInputEntry'
+        );
+        $result = SNMP::translate(Mock::genDevice(), $oids, null, 'SNMPv2-MIB:IF-MIB:JUNIPER-ANALYZER-MIB', 'junos');
+
+        $this->assertEquals($expected, $result);
     }
 
     public function testSnmpTranslateFailure()

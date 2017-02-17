@@ -25,6 +25,7 @@ namespace LibreNMS\SNMP\Engines;
 
 use LibreNMS\Cache;
 use LibreNMS\Config;
+use LibreNMS\Exceptions\SnmpUnreachableException;
 use LibreNMS\Proc;
 use LibreNMS\SNMP;
 use LibreNMS\SNMP\Contracts\SnmpTranslator;
@@ -46,8 +47,21 @@ class NetSnmp extends RawBase implements SnmpTranslator
             return '';
         }
 
+        // check for cached data
+        $extra = str_replace(' ', '_', $options) . '_' . $device['community'];
+        $key = Cache::genKey('NetSnmp::getRaw', $oids, $device['device_id'], $extra);
+        $cached = Cache::get($key);
+        if (!is_null($cached)) {
+            self::printDebug($cached);
+            return $cached;
+        }
+
         $oids = is_array($oids) ? implode(' ', $oids) : $oids;
-        return $this->exec($this->genSnmpgetCmd($device, $oids, $options, $mib, $mib_dir));
+        $results = $this->exec($this->genSnmpgetCmd($device, $oids, $options, $mib, $mib_dir));
+
+        Cache::put($key, $results);
+
+        return $results;
     }
 
     /**
@@ -60,7 +74,20 @@ class NetSnmp extends RawBase implements SnmpTranslator
      */
     public function walkRaw($device, $oid, $options = null, $mib = null, $mib_dir = null)
     {
-        return $this->exec($this->genSnmpwalkCmd($device, $oid, $options, $mib, $mib_dir));
+        // check for cached data
+        $extra = str_replace(' ', '_', $options) . '_' . $device['community'];
+        $key = Cache::genKey('NetSnmp::getRaw', $oid, $device['device_id'], $extra);
+        $cached = Cache::get($key);
+        if (!is_null($cached)) {
+            self::printDebug($cached);
+            return $cached;
+        }
+
+        $results = $this->exec($this->genSnmpwalkCmd($device, $oid, $options, $mib, $mib_dir));
+
+        Cache::put($key, $results);
+
+        return $results;
     }
 
     /**
@@ -74,24 +101,38 @@ class NetSnmp extends RawBase implements SnmpTranslator
      */
     public function translate($device, $oids, $options = null, $mib = null, $mib_dir = null)
     {
-//        $oid_cache_keys = $this->getCacheKeys($oids, 'NetSnmp::translate', $device, $options);
+        $formatted_oids = collect($oids)->combine($oids)->map(function ($oid) use ($mib) {
+            return Format::compoundOid($oid, $mib);
+        });
 
-        // retrieve cached data
-//        $cached = Cache::multiGet($oid_cache_keys);
-        // TODO use cache
+        // retrieve cached keys ['Mib::OID' => 'cache_key'] then data ['Mib::OID' => 'result']
+        $oid_cache_keys = $this->getCacheKeys($formatted_oids, 'NetSnmp::translate', $device, $options);
+        $cached = Cache::multiGet($oid_cache_keys);
 
-        $data = collect($oids);
-        $cmd  = 'snmptranslate '.$this->getMibDir($mib_dir, $device);
-        if (isset($mib)) {
-            $cmd .= " -m $mib";
+        // get the oids that are yet to be translated ['Mib::OID' => 'result']
+        $oids_to_translate = $formatted_oids->diffKeys($cached)->values();
+
+        if ($oids_to_translate->isEmpty()) {
+            $result = $cached;
+        } else {
+            $cmd  = 'snmptranslate '.$this->getMibDir($mib_dir, $device);
+            if (isset($mib)) {
+                $cmd .= " -m $mib";
+            }
+            $cmd .= " $options ";
+            $cmd .= $oids_to_translate->implode(' ');
+            $cmd .= ' 2>/dev/null';  // don't allow errors to throw an exception
+            $output = collect(explode("\n\n", $this->exec($cmd)));
+
+            $translated = $oids_to_translate->combine(array_pad($output->all(), $oids_to_translate->count(), null));
+
+            // save the translated oids to the cache for one week
+            $oid_cache_keys->union($translated)->combine($translated)->each(function ($data, $key) {
+                Cache::put($key, $data, 604800);
+            });
+
+            $result = $oid_cache_keys->merge($cached)->merge($translated);
         }
-        $cmd .= " $options ";
-        $cmd .= $data->implode(' ');
-        $cmd .= ' 2>/dev/null';  // don't allow errors to throw an exception
-
-        $output = collect(explode("\n\n", $this->exec($cmd)));
-
-        $result = $data->combine(array_pad($output->all(), $data->count(), null));
 
         return is_array($oids) ? $result->all() : $result->first();
     }
@@ -153,7 +194,11 @@ class NetSnmp extends RawBase implements SnmpTranslator
         d_echo("[$output]\n");
 
         if (!empty($stderr)) {
-            throw new \SNMPException("[$cmd]\n$stderr");
+            $message = "[$cmd]\n$stderr";
+            if (str_contains($stderr, 'Timeout: No Response from ')) {
+                throw new SnmpUnreachableException($message);
+            }
+            throw new \Exception($message);
         }
 
         return $output;

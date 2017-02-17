@@ -46,11 +46,10 @@ class SNMP
     /**
      * Get the SnmpEngine instance.  This is called automatically by \LibreNMS\SNMP.
      * NetSNMP is currently the default implementation.
-     * The private instance will be set to any passed engine,
-     * discarding the old engine and any data it might have cached.
+     * The private instance will be set to any passed engine
      *
-     * @param SnmpEngine|null $engine
-     * @return SnmpEngine|NetSnmp
+     * @param SnmpEngine $engine
+     * @return SnmpEngine
      */
     public static function getInstance(SnmpEngine $engine = null)
     {
@@ -66,7 +65,11 @@ class SNMP
     }
 
     /**
-     * @param SnmpTranslator|null $translator
+     * Get the current SnmpTranslator instance
+     * NetSNMP is the default and only translator
+     * Passed translators will be remembered for future translations
+     *
+     * @param SnmpTranslator $translator
      * @return SnmpTranslator
      */
     public static function getTranslator(SnmpTranslator $translator = null)
@@ -87,9 +90,16 @@ class SNMP
         return self::$translator;
     }
 
-    // ---- Public Interface ----
-
     /**
+     * Perform an SNMP get and return a DataSet of the OIDData entries.
+     *
+     * If an error occurred before returning any data, DataSet->hasError() will return true.
+     * If an error occurred while fetching a specific oid, that OIDData->hasError() will return true.
+     *
+     * Sending a single oid without an array will result in OIDData being directly returned.
+     *
+     * Results may be cached.
+     *
      * @param array $device
      * @param string|array $oids single or array of oids to get
      * @param string $mib Additional mibs to search, optionally you can specify full oid names
@@ -107,6 +117,10 @@ class SNMP
     }
 
     /**
+     * Perform an SNMP get and return the raw output.
+     *
+     * Results may be cached.
+     *
      * @param array $device
      * @param string|array $oids single or array of oids to walk
      * @param null $options Options to send to snmpget
@@ -121,6 +135,14 @@ class SNMP
 
 
     /**
+     * Perform an SNMP walk and return a DataSet of the OIDData entries.
+     * Sending an array of oids will result in successive walks.
+     *
+     * If an error occurred before returning any data, DataSet->hasError() will return true.
+     * If an error occurred while fetching a specific oid, that OIDData->hasError() will return true.
+     *
+     * Results may be cached.
+     *
      * @param array $device
      * @param string|array $oids single or array of oids to walk
      * @param string $mib Additional mibs to search, optionally you can specify full oid names
@@ -137,6 +159,10 @@ class SNMP
     }
 
     /**
+     * Perform an SNMP walk and return the raw output.
+     *
+     * Results may be cached.
+     *
      * @param array $device
      * @param string $oid single oid to walk
      * @param string $options Options to send to snmpwalk
@@ -151,12 +177,17 @@ class SNMP
 
 
     /**
+     * Translate oids, accepts Net-SNMP options.
+     * Returns an array of results or a string for a single oid
+     *
+     * Results may be cached.
+     *
      * @param array $device
      * @param string $oids
      * @param string $options
-     * @param string $mib
-     * @param string $mib_dir
-     * @return string
+     * @param string $mib mib(s) to load, separated by colons
+     * @param string $mib_dir mib dir(s) to search for mibs, separated by colons
+     * @return string|array Translated oids
      */
     public static function translate($device, $oids, $options = null, $mib = null, $mib_dir = null)
     {

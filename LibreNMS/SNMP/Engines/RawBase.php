@@ -26,6 +26,8 @@
 namespace LibreNMS\SNMP\Engines;
 
 use LibreNMS\Cache;
+use LibreNMS\Exceptions\SnmpUnreachableException;
+use LibreNMS\SNMP;
 use LibreNMS\SNMP\DataSet;
 use LibreNMS\SNMP\Parse;
 
@@ -66,8 +68,8 @@ abstract class RawBase extends Base
             })->values();
 
             return (count((array)$oids) == 1 && $result->count() == 1) ? $result->first() : DataSet::make($result);
-        } catch (\SNMPException $e) {
-            return DataSet::makeError(Parse::errorMessage($e->getMessage()));
+        } catch (SnmpUnreachableException $e) {
+            return DataSet::makeError(SNMP::ERROR_UNREACHABLE, $e->getMessage());
         }
     }
 
@@ -94,8 +96,8 @@ abstract class RawBase extends Base
                 }
             }
             return $results;
-        } catch (\Exception $e) {
-            return DataSet::makeError(Parse::errorMessage($e->getMessage()));
+        } catch (SnmpUnreachableException $e) {
+            return DataSet::makeError(SNMP::ERROR_UNREACHABLE, $e->getMessage());
         }
     }
 }
