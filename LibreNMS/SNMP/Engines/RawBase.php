@@ -52,7 +52,7 @@ abstract class RawBase extends Base
 
             $oids_to_fetch = $oid_cache_keys->diffKeys($cached)->keys();
             $fetched = $oids_to_fetch
-                ->combine(Parse::rawOutput($this->getRaw($device, $oids_to_fetch->all(), null, $mib, $mib_dir)));
+                ->combine(Parse::rawOutput($this->getRaw($device, $oids_to_fetch->all(), '-OS', $mib, $mib_dir)));
 
             // cache the results individually
             $fetched->each(function ($entry, $oid) use ($oid_cache_keys) {
@@ -90,7 +90,7 @@ abstract class RawBase extends Base
                 if (Cache::has($key)) {
                     $results = $results->merge(Cache::get($key));
                 } else {
-                    $data = Parse::rawOutput($this->walkRaw($device, $oid, null, $mib, $mib_dir));
+                    $data = Parse::rawOutput($this->walkRaw($device, $oid, '-OS', $mib, $mib_dir));
                     $results = $results->merge($data);
                     Cache::put($key, $data);
                 }

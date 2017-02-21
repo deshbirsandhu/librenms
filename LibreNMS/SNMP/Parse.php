@@ -37,39 +37,44 @@ class Parse
      */
     public static function rawOID($oid)
     {
-        // TODO: extract format
         $parts = collect(explode('.', $oid));
         if (count($parts) > 1) {
             // if the oid contains a name, index is the first thing after that
             if (str_contains($parts->first(), '::')) {
                 list($mib, $name) = explode('::', $parts->first());
-                return OIDData::make(array(
-                    'oid' => $oid,
-                    'mib' => $mib,
-                    'name' => $name,
-                    'base_oid' => $parts->first(),
-                    'index' => intval($parts[1]),
-                    'extra_oid' => $parts->slice(2)->values()->map(function ($item) {
+                return Format::oid(
+                    $oid,
+                    $parts->first(),
+                    intval($parts[1]),
+                    $parts->slice(2)->values()->map(function ($item) {
                         return trim($item, '"');
-                    })->all()
-                ));
+                    })->all(),
+                    $mib,
+                    $name
+                );
             }
+
             // otherwise, assume index is the last item
-            return OIDData::make(array(
-                'oid' => $oid,
-                'base_oid' => implode('.', $parts->slice(0, count($parts) - 1)->all()),
-                'index' => $parts->last(),
-            ));
-        } else {
-            // there are no segments in this oid
-            return OIDData::make(array(
-                'oid' => $oid,
-                'base_oid' => $oid,
-            ));
+            return Format::oid(
+                $oid,
+                $parts->slice(0, count($parts) - 1)->all(),
+                $parts->last()
+            );
+
         }
+
+        // there are no segments in this oid
+        return Format::oid(
+            $oid,
+            $oid,
+            null
+        );
     }
 
     /**
+     * Determine what type of SNMP error an error message is.
+     * Throw an exception if we cannot parse the error message.
+     *
      * @param string $message message to parse to error code
      * @return int LibreNMS\SNMP error code
      * @throws \Exception If the error cannot be parsed
@@ -83,6 +88,9 @@ class Parse
     }
 
     /**
+     * Parse raw data in Net-SNMP format and return a DataSet containing populated OIDData objects.
+     *
+     *
      * @param string $rawData
      * @return DataSet
      */
@@ -124,6 +132,13 @@ class Parse
         return DataSet::make($result);
     }
 
+    /**
+     * Generate OIDData from a raw value, generally in the format TYPE: value.
+     * Checks for errors and returns an error OIDData if appropriate.
+     *
+     * @param string $raw_value
+     * @return OIDData
+     */
     public static function rawValue($raw_value)
     {
         if (!str_contains($raw_value, ': ')) {
@@ -138,6 +153,15 @@ class Parse
         return Parse::value($type, $value);
     }
 
+    /**
+     * Parse value and type.
+     * Calls specific parser for type if one exists,
+     * otherwise it uses the generic parser.
+     *
+     * @param string $type
+     * @param string $value
+     * @return OIDData
+     */
     public static function value($type, $value)
     {
 
@@ -150,16 +174,26 @@ class Parse
         return Format::generic($type, $value);
     }
 
+    /**
+     * Parse an snmprec line and return a populated OIDData object.
+     *
+     * @param string $entry
+     * @return OIDData
+     */
     public static function snmprec($entry)
     {
         list($oid, $type, $data) = explode('|', $entry, 3);
         return OIDData::makeType($oid, self::getSnmprecTypeString($type), $data);
     }
 
+    /**
+     * Internal method to convert snmprec numeric type to a string type.
+     *
+     * @param int|string $type
+     * @return mixed
+     */
     private static function getSnmprecTypeString($type)
     {
-        // FIXME: dos this belong here?
-        // FIXME: strings here might be wrong for some types
         static $types = array(
             2 => 'integer32',
             4 => 'string',
@@ -173,12 +207,13 @@ class Parse
             68 => 'opaque',
             70 => 'counter64'
         );
-        // FIXME: is the default right here?
         return $types[$type];
     }
 
     /**
-     * @param $input
+     * Parse and Format Integer data.
+     *
+     * @param string $input
      * @return OIDData
      */
     public static function integerType($input)
@@ -192,6 +227,7 @@ class Parse
             $int = $matches[2];
             return Format::integerType($int, $descr);
         }
+
         if (preg_match('/^([0-9]+) (.+)$/', $input, $matches)) {
             $int = $matches[1];
             $descr = $matches[2];
@@ -202,7 +238,9 @@ class Parse
     }
 
     /**
-     * @param $input
+     * Parse and Format String data.
+     *
+     * @param string $input
      * @return OIDData
      */
     public static function stringType($input)
@@ -210,13 +248,22 @@ class Parse
         return Format::stringType(trim(stripslashes($input), "\""));
     }
 
+    /**
+     * Parse and Format OID data.
+     * Converts all OIDs to numeric.
+     *
+     * @param string $input
+     * @return OIDData
+     */
     public static function oidType($input)
     {
         return Format::oidType(SNMP::translateNumeric(null, $input));
     }
 
     /**
-     * @param $input
+     * Parse and Format Timeticks data.
+     *
+     * @param string $input
      * @return OIDData
      */
     public static function timeticksType($input)

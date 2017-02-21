@@ -88,7 +88,8 @@ abstract class Base implements SnmpEngine
         }
 
         foreach ($data as $key => $oid_data) {
-            $parts = $info = explode('_', $key);
+            // explode cache key if we have one.
+            $parts = explode('_', $key);
             if (count($parts) == 3) {
                 list($cacher, $device_id, $oids) = $parts;
                 $snmpinfo = "Cached by $cacher device_id:$device_id oids:$oids";

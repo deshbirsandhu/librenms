@@ -2,7 +2,7 @@
 /**
  * Format.php
  *
- * -Description-
+ * Functions to ensure proper formatting of OIDData
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ class Format
 {
 
     /**
-     * @param $message
+     * @param string $message
      * @return DataSet
      */
     public static function unreachable($message)
@@ -39,9 +39,18 @@ class Format
         return DataSet::makeError(SNMP::ERROR_UNREACHABLE, $message);
     }
 
-    public static function oid($oid, $base_oid, $index, $extra_oid)
+    /**
+     * @param $oid
+     * @param $base_oid
+     * @param $index
+     * @param null $extra_oid
+     * @param null $mib
+     * @param null $name
+     * @return OIDData
+     */
+    public static function oid($oid, $base_oid, $index, $extra_oid = null, $mib = null, $name = null)
     {
-        return OIDData::make(compact('oid', 'base_oid', 'index', 'extra_oid'));
+        return OIDData::make(compact('mib', 'oid', 'base_oid', 'index', 'name', 'extra_oid'));
     }
 
     /**
@@ -51,12 +60,13 @@ class Format
      */
     public static function generic($type, $value)
     {
-        return OIDData::make(array(
-            'type' => $type,
-            'value' => $value
-        ));
+        return OIDData::make(compact('type', 'value'));
     }
 
+    /**
+     * @param string $numeric_oid
+     * @return OIDData
+     */
     public static function oidType($numeric_oid)
     {
         $data = OIDData::make(array(
@@ -119,8 +129,8 @@ class Format
     /**
      * Try to change from simple oid to Module::oid format
      *
-     * @param $oid
-     * @param $mib
+     * @param string $oid
+     * @param string $mib
      * @return string
      */
     public static function compoundOid($oid, $mib)
@@ -132,7 +142,9 @@ class Format
     }
 
     /**
-     * @param $oid
+     * Check if an OID value is numeric.
+     *
+     * @param string $oid
      * @return bool
      */
     public static function isNumericOid($oid)
@@ -140,6 +152,11 @@ class Format
         return (bool)preg_match('/^[0-9\.]+$/', $oid);
     }
 
+    /**
+     * @param string $oid
+     * @param string $hex
+     * @return string
+     */
     public static function hexStringAsString($oid, $hex)
     {
         // we do not understand MIBs, so approximate it...

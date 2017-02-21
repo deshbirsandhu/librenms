@@ -25,41 +25,64 @@ namespace LibreNMS\SNMP;
 
 class OIDData extends BaseDataSet
 {
-
+    // define all properties here to ease access.
     /** @property string     oid         the full oid */
+    /** @property string     name        The string name of this OID, such as sysDescr */
     /** @property string     base_oid    the base oid, the first part of the oid */
     /** @property int        index       the index for this object */
     /** @preperty array      extra_oid   any oid parts after the index, split by the . */
     /** @property string     type        the type for of the value (string, oid, integer32, etc) */
     /** @property string|int value       the value of this object */
-    /** @property string     description if the value is an enum, this is the description of that value. Valid for type integer32 */
-    /** @property int        seconds     the value of this OID in seconds. Valid for type timeticks and some integer32 */
+    /** @property string     description For enums, this is the description of that value. Valid for type integer32 */
+    /** @property int        seconds     the value in seconds. Valid for type timeticks and some integer32 */
     /** @preoprty string     readable    human readable time value as return by netsnmp.  Valid for type timeticks */
 
+    /**
+     * Parse raw SNMP value in Net-Snmp format.
+     * Returns a fully populated OIDData object.
+     *
+     * @param string $oid
+     * @param string $raw_value
+     * @return self
+     */
     public static function makeRaw($oid, $raw_value)
     {
         return Parse::rawValue($raw_value)
             ->merge(Parse::rawOID($oid));
     }
 
+    /**
+     * Parse an SNMP value of a known type.
+     * Returns a fully populated OIDData object.
+     *
+     * @param string $oid
+     * @param string $type
+     * @param string $value
+     * @return self
+     */
     public static function makeType($oid, $type, $value)
     {
         return Parse::value($type, $value)
             ->merge(Parse::rawOID($oid));
     }
 
+    /**
+     * Generate an OIDData object for an error.
+     *
+     * @param int $error
+     * @param null $message
+     * @return self
+     */
     public static function makeError($error, $message = null)
     {
-        $result = parent::makeError($error, $message);
-        $result->put('value', null);
-        return $result;
+        return self::make()->setError($error, $message)->put('value', null);
     }
 
     /**
      * Magic getter function
      * Get array values as though they were properties
      *
-     * @param $key
+     * @param mixed $key
      * @return mixed
      */
     public function __get($key)

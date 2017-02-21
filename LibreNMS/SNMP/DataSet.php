@@ -2,6 +2,8 @@
 /**
  * DataSet.php
  *
+ * A Collection of OIDData objects returned by SNMP.
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -25,6 +27,9 @@ namespace LibreNMS\SNMP;
 
 class DataSet extends BaseDataSet
 {
+    /**
+     * @return mixed
+     */
     public function toRawString()
     {
         return $this->reduce(function ($entry, $output) {
