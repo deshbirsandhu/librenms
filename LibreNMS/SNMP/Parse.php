@@ -60,7 +60,6 @@ class Parse
                 $parts->slice(0, count($parts) - 1)->all(),
                 $parts->last()
             );
-
         }
 
         // there are no segments in this oid

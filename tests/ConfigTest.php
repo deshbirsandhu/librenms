@@ -50,6 +50,33 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('easy', Config::get('one.two.three'));
     }
 
+    public function testGetDeviceSetting()
+    {
+        global $config;
+        $device = array('set' => true, 'null' => null);
+        $config['null'] = 'notnull!';
+        $config['noprefix'] = true;
+        $config['prefix']['global'] = true;
+
+        $this->assertNull(Config::getDeviceSetting($device, 'unset'), 'Non-existing settings should return null');
+        $this->assertTrue(Config::getDeviceSetting($device, 'set'), 'Could not get setting from device array');
+        $this->assertTrue(Config::getDeviceSetting($device, 'noprefix'), 'Failed to get setting from global config');
+        $this->assertEquals(
+            'notnull!',
+            Config::getDeviceSetting($device, 'null'),
+            'Null variables should defer to the global setting'
+        );
+        $this->assertTrue(
+            Config::getDeviceSetting($device, 'global', 'prefix'),
+            'Failed to get setting from global config with a prefix'
+        );
+        $this->assertEquals(
+            'default',
+            Config::getDeviceSetting($device, 'something', 'else', 'default'),
+            'Failed to return the default argument'
+        );
+    }
+
     public function testSet()
     {
         global $config;
