@@ -51,7 +51,7 @@ class NetSnmp extends RawBase implements SnmpTranslator
         $extra = str_replace(' ', '_', $options) . '_' . $device['community'];
         $key = Cache::genKey('NetSnmp::getRaw', $oids, $device['device_id'], $extra);
         $cached = Cache::get($key);
-        if (!is_null($cached)) {
+        if (isset($cached)) {
             self::printDebug($cached);
             return $cached;
         }
@@ -78,7 +78,7 @@ class NetSnmp extends RawBase implements SnmpTranslator
         $extra = str_replace(' ', '_', $options) . '_' . $device['community'];
         $key = Cache::genKey('NetSnmp::getRaw', $oid, $device['device_id'], $extra);
         $cached = Cache::get($key);
-        if (!is_null($cached)) {
+        if (isset($cached)) {
             self::printDebug($cached);
             return $cached;
         }
@@ -285,8 +285,8 @@ class NetSnmp extends RawBase implements SnmpTranslator
     private function genSnmpCmd($cmd, $device, $oids, $options = null, $mib = null, $mibdir = null)
     {
         // populate timeout & retries values from configuration
-        $timeout = self::prepSetting($device, 'timeout');
-        $retries = self::prepSetting($device, 'retries');
+        $timeout = Config::getDeviceSetting($device, 'timeout', 'snmp');
+        $retries = Config::getDeviceSetting($device, 'retries', 'snmp');
 
         if (!isset($device['transport'])) {
             $device['transport'] = 'udp';

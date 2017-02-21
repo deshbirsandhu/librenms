@@ -25,6 +25,7 @@
 
 namespace LibreNMS\SNMP\Engines;
 
+use LibreNMS\Config;
 use LibreNMS\SNMP\DataSet;
 use LibreNMS\SNMP\Format;
 use LibreNMS\SNMP\OIDData;
@@ -52,8 +53,8 @@ class PhpSnmp extends FormattedBase
             $this->versionTable[$device['snmpver']],
             $device['hostname'] . ':' . $device['port'],
             $device['community'],
-            ($this->prepSetting($device, 'timeout') ?: 1) * 1000000,
-            $this->prepSetting($device, 'retries') ?: 5
+            Config::getDeviceSetting($device, 'timeout', 'snmp', 1) * 1000000,
+            Config::getDeviceSetting($device, 'retries', 'snmp', 5)
         );
     }
 

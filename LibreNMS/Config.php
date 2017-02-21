@@ -56,6 +56,30 @@ class Config
     }
 
     /**
+     * Get a setting from a device, if that is not set,
+     * fall back to the global config setting prefixed by $global_prefix
+     * The key must be the same for the global setting and the device setting.
+     *
+     * @param array $device Device array
+     * @param string $key Name of setting to fetch
+     * @param string $global_prefix
+     * @param mixed $default will be returned if the setting is not set on the device or globally
+     * @return mixed
+     */
+    public static function getDeviceSetting($device, $key, $global_prefix = null, $default = null)
+    {
+        if (isset($device[$key])) {
+            return $device[$key];
+        }
+
+        if (isset($global_prefix)) {
+            $key = "$global_prefix.$key";
+        }
+
+        return self::get($key, $default);
+    }
+
+    /**
      * Set a variable in the global config
      *
      * @param mixed $key period separated config variable name
