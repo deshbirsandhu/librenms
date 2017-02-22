@@ -107,7 +107,7 @@ class NetSnmp extends RawBase implements SnmpTranslator
 
         // retrieve cached keys ['Mib::OID' => 'cache_key'] then data ['Mib::OID' => 'result']
         $oid_cache_keys = $this->getCacheKeys($formatted_oids, 'NetSnmp::translate', $device, $options);
-        $cached = Cache::multiGet($oid_cache_keys);
+        $cached = Cache::getMany($oid_cache_keys);
 
         // get the oids that are yet to be translated ['Mib::OID' => 'result']
         $oids_to_translate = $formatted_oids->diffKeys($cached)->values();
@@ -160,7 +160,7 @@ class NetSnmp extends RawBase implements SnmpTranslator
 
         // get what we can from the cache
         $cache_keys = $this->getCacheKeys($formatted_oids, 'NetSnmp::translateNumeric', $device);
-        $cached = Cache::multiGet($cache_keys);
+        $cached = Cache::getMany($cache_keys);
 
         // merge numeric and cached results
         $result = $numeric->merge($cached);

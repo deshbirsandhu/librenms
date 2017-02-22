@@ -47,7 +47,7 @@ abstract class RawBase extends Base
         try {
             $oid_cache_keys = $this->getCacheKeys($oids, 'RawBase::get', $device);
 
-            $cached = Cache::multiGet($oid_cache_keys);
+            $cached = Cache::getMany($oid_cache_keys);
             $this->printDebug($cached);
 
             $oids_to_fetch = $oid_cache_keys->diffKeys($cached)->keys();

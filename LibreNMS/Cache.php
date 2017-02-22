@@ -134,7 +134,7 @@ class Cache
      * @param Collection $keys
      * @return Collection key->cached data where key is the same as the input
      */
-    public static function multiGet(Collection $keys)
+    public static function getMany(Collection $keys)
     {
         if (self::cacheDisabled()) {
             return null;
@@ -196,7 +196,7 @@ class Cache
     }
 
     /**
-     * Generate a string to use as the key
+     * Generate a string to use as the key. For SNMP Engines.
      *
      * @param string $group generally, this is the function name returned by __FUNCTION__
      * @param array|string $oids oid or array of oids

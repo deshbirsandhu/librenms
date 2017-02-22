@@ -52,6 +52,11 @@ class DataSet extends BaseDataSet
         return $this->getByField('base_oid', $base_oid);
     }
 
+    /**
+     * Remove all OIDData objects that have an error.
+     *
+     * @return static
+     */
     public function removeErrors()
     {
         return $this->reject(function (BaseDataSet $oiddata) {
