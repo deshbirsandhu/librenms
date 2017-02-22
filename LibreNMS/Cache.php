@@ -48,7 +48,7 @@ class Cache
         // Setup File Path on your config files
         $setup = array(
             'storage' => $storage,
-            'path' => Config::get('cache.dir'),
+            'path' => Config::get('cache.dir', realpath(__DIR__ . '/../cache/')),
 //            'allow_search' => true,
             'server' => array(
                 array(Config::get('memcached.host'), Config::get('memcached.port'), 1)

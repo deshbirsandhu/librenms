@@ -23,6 +23,8 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
+global $config; // stupid work around
+
 $install_dir = realpath(__DIR__ . '/..');
 
 $init_modules = array('web');

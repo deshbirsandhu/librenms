@@ -129,7 +129,7 @@ class PhpSnmp extends FormattedBase
     private function formatDataSet($data)
     {
         return DataSet::make(collect($data)->mapWithKeys(function ($value, $oid) {
-            return array(OIDData::makeRaw($oid, $value));
-        }));
+            return array($oid => OIDData::makeRaw($oid, $value));
+        })->values());
     }
 }
