@@ -119,6 +119,6 @@ class Config
             $curr = &$curr[$k];
         }
 
-        return isset($curr[$last]);
+        return is_array($curr) && isset($curr[$last]);
     }
 }

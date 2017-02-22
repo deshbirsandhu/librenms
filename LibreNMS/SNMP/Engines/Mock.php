@@ -90,9 +90,9 @@ class Mock extends FormattedBase
      * @param OIDData $oid_data
      * @param array $device
      * @param null $mib
-     * @return OIDData|static
+     * @return OIDData
      */
-    private static function formatOutput(OIDData $oid_data, $device = array(), $mib = null)
+    public static function formatOutput(OIDData $oid_data, $device = array(), $mib = null)
     {
         $type = $oid_data['type'];
 

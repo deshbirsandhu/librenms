@@ -30,9 +30,8 @@ use LibreNMS\SNMP\Engines\Mock;
 
 class MockSnmpTest extends SnmpEngineTest
 {
-    public function setUp()
+    public static function setUpBeforeClass()
     {
-        parent::setUp();
         SNMP::getInstance(new Mock());
     }
 }

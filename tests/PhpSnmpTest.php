@@ -30,9 +30,17 @@ use LibreNMS\SNMP\Engines\PhpSnmp;
 
 class PhpSnmpTest extends SnmpEngineTest
 {
+    public static function setUpBeforeClass()
+    {
+        if (version_compare(PHP_VERSION, '5.4.0', '>=')) {
+            SNMP::getInstance(new PhpSnmp());
+        }
+    }
+
     public function setUp()
     {
-        parent::setUp();
-        SNMP::getInstance(new PhpSnmp());
+        if (version_compare(PHP_VERSION, '5.4.0', '<')) {
+            $this->markTestSkipped('SNMP Object not supported on php < 5.4');
+        }
     }
 }

@@ -88,13 +88,15 @@ class ConfigTest extends \PHPUnit_Framework_TestCase
     public function testHas()
     {
         Config::set('long.key.setting', 'no one cares');
+        Config::set('null', null);
 
-        $this->assertTrue(Config::has('long'));
-        $this->assertTrue(Config::has('long.key.setting'));
-        $this->assertFalse(Config::has('long.key.setting.nothing'));
+        $this->assertFalse(Config::has('null'), 'Keys set to null do not count as existing');
+        $this->assertTrue(Config::has('long'), 'Top level key should exist');
+        $this->assertTrue(Config::has('long.key.setting'), 'Exact exists on value');
+        $this->assertFalse(Config::has('long.key.setting.nothing'), 'Non-existent child setting');
 
-        $this->assertFalse(Config::has('off.the.wall'));
-        $this->assertFalse(Config::has('off.the'));
+        $this->assertFalse(Config::has('off.the.wall'), 'Non-existent key');
+        $this->assertFalse(Config::has('off.the'), 'Config:has() should not modify the config');
     }
 
     public function testGetNonExistent()
