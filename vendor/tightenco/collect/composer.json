@@ -16,8 +16,8 @@
         "php": ">=5.3"
     },
     "require-dev": {
-        "mockery/mockery": "~0.9.4",
-        "phpunit/phpunit": "~4.1"
+        "mockery/mockery": "^0.9.7",
+        "phpunit/phpunit": "^4.8"
     },
     "autoload": {
         "files": [

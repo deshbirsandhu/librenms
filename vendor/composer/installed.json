@@ -616,57 +616,6 @@
         "description": "PHPMailer is a full-featured email creation and transfer class for PHP"
     },
     {
-        "name": "tightenco/collect",
-        "version": "dev-master",
-        "version_normalized": "9999999-dev",
-        "source": {
-            "type": "git",
-            "url": "https://github.com/murrant/collect.git",
-            "reference": "df02dfaecd2ab219669f664482197c0d07e09ef6"
-        },
-        "dist": {
-            "type": "zip",
-            "url": "https://api.github.com/repos/murrant/collect/zipball/df02dfaecd2ab219669f664482197c0d07e09ef6",
-            "reference": "df02dfaecd2ab219669f664482197c0d07e09ef6",
-            "shasum": ""
-        },
-        "require": {
-            "php": ">=5.3"
-        },
-        "require-dev": {
-            "mockery/mockery": "~0.9.4",
-            "phpunit/phpunit": "~4.1"
-        },
-        "time": "2017-01-04 04:54:14",
-        "type": "library",
-        "installation-source": "source",
-        "autoload": {
-            "files": [
-                "src/Illuminate/Support/helpers.php"
-            ],
-            "psr-4": {
-                "Illuminate\\": "src/Illuminate"
-            }
-        },
-        "license": [
-            "MIT"
-        ],
-        "authors": [
-            {
-                "name": "Taylor Otwell",
-                "email": "taylorotwell@gmail.com"
-            }
-        ],
-        "description": "Collect - Illuminate Collections as a separate package.",
-        "keywords": [
-            "collection",
-            "laravel"
-        ],
-        "support": {
-            "source": "https://github.com/murrant/collect/tree/master"
-        }
-    },
-    {
         "name": "phpfastcache/phpfastcache",
         "version": "4.3.18",
         "version_normalized": "4.3.18.0",
@@ -738,5 +687,56 @@
             "redis",
             "wincache"
         ]
+    },
+    {
+        "name": "tightenco/collect",
+        "version": "dev-master",
+        "version_normalized": "9999999-dev",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/murrant/collect.git",
+            "reference": "44b9492e4bd3b4726ed50211fe70ffef5f1f451d"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/murrant/collect/zipball/44b9492e4bd3b4726ed50211fe70ffef5f1f451d",
+            "reference": "44b9492e4bd3b4726ed50211fe70ffef5f1f451d",
+            "shasum": ""
+        },
+        "require": {
+            "php": ">=5.3"
+        },
+        "require-dev": {
+            "mockery/mockery": "^0.9.7",
+            "phpunit/phpunit": "^4.8"
+        },
+        "time": "2017-02-22 04:34:56",
+        "type": "library",
+        "installation-source": "source",
+        "autoload": {
+            "files": [
+                "src/Illuminate/Support/helpers.php"
+            ],
+            "psr-4": {
+                "Illuminate\\": "src/Illuminate"
+            }
+        },
+        "license": [
+            "MIT"
+        ],
+        "authors": [
+            {
+                "name": "Taylor Otwell",
+                "email": "taylorotwell@gmail.com"
+            }
+        ],
+        "description": "Collect - Illuminate Collections as a separate package.",
+        "keywords": [
+            "collection",
+            "laravel"
+        ],
+        "support": {
+            "source": "https://github.com/murrant/collect/tree/master"
+        }
     }
 ]
