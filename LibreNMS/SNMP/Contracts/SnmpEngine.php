@@ -44,6 +44,7 @@ interface SnmpEngine
     /**
      * @param array $device
      * @param string|array $oids single or array of oids to walk
+     * @param string $options options to send to snmpget
      * @param string $mib Additional mibs to search, optionally you can specify full oid names
      * @param string $mib_dir Additional mib directory, should be rarely needed, see definitions to add per os mib dirs
      * @return string exact results from snmpget

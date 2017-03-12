@@ -37,7 +37,14 @@ class Parse
      */
     public static function rawOID($oid)
     {
-        $parts = collect(explode('.', $oid));
+        if (str_contains($oid, '[')) {
+            // -OX output
+            list($first, $rest) = explode('[', $oid, 2);
+            $parts = collect(explode('][', rtrim($rest, ']')))->prepend($first);
+        } else {
+            $parts = collect(explode('.', $oid));
+        }
+
         if (count($parts) > 1) {
             // if the oid contains a name, index is the first thing after that
             if (str_contains($parts->first(), '::')) {

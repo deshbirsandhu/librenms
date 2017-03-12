@@ -286,18 +286,34 @@ abstract class SnmpEngineTest extends \PHPUnit_Framework_TestCase
         $device = Mock::genDevice('unit_tests');
         $phys_addr = array();
         $phys_addr[] = Mock::genOIDData(
-            'IP-MIB::ipNetToPhysicalPhysAddress.1.ipv6."fd:80:00:00:00:00:00:00:86:d6:d0:ff:fe:ed:0f:cc"',
+            'IP-MIB::ipNetToPhysicalPhysAddress[1][ipv6]["fd:80:00:00:00:00:00:00:86:d6:d0:ff:fe:ed:0f:cc"]',
             'string',
             '84:d6:d0:ed:1f:96'
         );
         $phys_addr[] = Mock::genOIDData(
-            'IP-MIB::ipNetToPhysicalPhysAddress.97.ipv6."fd:80:00:00:00:00:00:00:26:e9:b3:ff:fe:bb:50:c3"',
+            'IP-MIB::ipNetToPhysicalPhysAddress[97][ipv6]["fd:80:00:00:00:00:00:00:26:e9:b3:ff:fe:bb:50:c3"]',
             'string',
             '24:e9:b3:bb:60:ad'
         );
         $expected = DataSet::make($phys_addr);
 
         $results = SNMP::walk($device, 'ipNetToPhysicalPhysAddress');
+        $this->assertEquals($expected, $results);
+    }
+
+    public function testEmbeddedStringPeriod()
+    {
+        $this->checkSnmpsim();
+        $device = Mock::genDevice('unit_tests');
+        $phys_addr = array(Mock::genOIDData(
+            'IP-MIB::ipAdEntIfIndex[10.24.32.1]',
+            'integer',
+            '1'
+        ));
+
+        $expected = DataSet::make($phys_addr);
+
+        $results = SNMP::walk($device, 'IP-MIB::ipAdEntIfIndex');
         $this->assertEquals($expected, $results);
     }
 }
