@@ -10,3 +10,4 @@ over:
     - { graph: device_mempool, text: 'Memory Usage' }
 poller_modules:
     wifi: 1
+    wireless: 1

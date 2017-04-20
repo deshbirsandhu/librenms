@@ -38,6 +38,7 @@ poller_modules:
     cisco-vpdn: 1
     ipmi: 0
 discovery_modules:
+    wireless: 1
     cisco-cef: 1
     cisco-sla: 1
     cisco-mac-accounting: 1

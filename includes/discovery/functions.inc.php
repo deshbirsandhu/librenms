@@ -473,6 +473,74 @@ function check_valid_sensors($device, $class, $valid, $poller_type = 'snmp')
 
 //end check_valid_sensors()
 
+function discover_wireless_sensor(
+    &$valid,
+    $class,
+    $device,
+    $oids,
+    $index,
+    $type,
+    $descr,
+    $current = null,
+    $access_point_id = null,
+    $divisor = 1,
+    $multiplier = 1,
+    $aggregator = 'avg',
+    $low_limit = null,
+    $low_warn_limit = null,
+    $warn_limit = null,
+    $high_limit = null,
+    $entPhysicalIndex = null,
+    $entPhysicalIndex_measured = null
+) {
+    $sql = 'SELECT * FROM `wireless_sensors` WHERE `device_id`=? AND `sensor_class`=? AND `sensor_type`=? AND `sensor_index`=?';
+    $params = array($device['device_id'], $class, $type, $index);
+    $existing_sensor = dbFetchRow($sql, $params);
+
+    $discovered_sensor = array(
+        'sensor_class' => $class,
+        'device_id' => $device['device_id'],
+        'access_point_id' => $access_point_id,
+        'sensor_oids' => json_encode((array)$oids),
+        'sensor_index' => $index,
+        'sensor_type' => $type,
+        'sensor_descr' => $descr,
+        'sensor_divisor' => $divisor,
+        'sensor_multiplier' => $multiplier,
+        'sensor_aggregator' => $aggregator,
+        'sensor_limit' => $high_limit,
+        'sensor_limit_warn' => $warn_limit,
+        'sensor_limit_low' => $low_limit,
+        'sensor_limit_low_warn' => $low_warn_limit,
+        'sensor_current' => $current,
+        'entPhysicalIndex' => $entPhysicalIndex,
+        'entPhysicalIndex_measured' => $entPhysicalIndex_measured,
+    );
+    d_echo('Discovered: ' . print_r($discovered_sensor, 1));
+
+    if (is_array($existing_sensor)) {
+        $valid['wireless'][$class][] = $existing_sensor['sensor_id'];
+
+        unset($discovered_sensor['sensor_current']); // skip this
+        $update = array_diff_assoc($discovered_sensor, $existing_sensor);
+        d_echo('Updated: ' . print_r($update, 1));
+
+        if (!empty($update)) {
+            dbUpdate($update, 'wireless_sensors', 'sensor_id=?', array($existing_sensor['sensor_id']));
+            echo 'U';
+            log_event('Wireless Sensor Updated: ' . json_encode($update), $device, 'sensor', 3, $existing_sensor['sensor_id']);
+        } else {
+            echo '.';
+        }
+    } else {
+        $inserted = dbInsert($discovered_sensor, 'wireless_sensors');
+        $valid['wireless'][$class][] = $inserted;
+
+        echo '+';
+        log_event('Wireless Sensor Added: ' . mres($class) . ' ' . mres($type) . ' ' . mres($index) . ' ' . mres($descr), $device, 'sensor', 3, $inserted);
+    }
+}
+
 function discover_juniAtmVp(&$valid, $device, $port_id, $vp_id, $vp_descr)
 {
     d_echo("Discover Juniper ATM VP: $port_id, $vp_id, $vp_descr\n");
