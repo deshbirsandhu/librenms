@@ -52,8 +52,24 @@ class WirelessSensor extends Sensor
     ) {
         $this->table = 'wireless_sensors';
         $this->access_point_ip = $access_point_id;
-        parent::__construct($class, $device_id, $oids, $type, $index, $description, $multiplier, $divisor, $aggregator,
-            $current, $high_limit, $low_limit, $high_warn, $low_warn, $entPhysicalIndex, $entPhysicalReference);
+        parent::__construct(
+            $class,
+            $device_id,
+            $oids,
+            $type,
+            $index,
+            $description,
+            $multiplier,
+            $divisor,
+            $aggregator,
+            $current,
+            $high_limit,
+            $low_limit,
+            $high_warn,
+            $low_warn,
+            $entPhysicalIndex,
+            $entPhysicalReference
+        );
     }
 
     protected function toArray()

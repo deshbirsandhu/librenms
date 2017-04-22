@@ -99,4 +99,3 @@ class OS
         return "\\LibreNMS\\OS\\$class";
     }
 }
-

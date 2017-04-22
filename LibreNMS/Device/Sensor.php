@@ -83,6 +83,8 @@ class Sensor
         $this->low_limit = $low_limit;
         $this->high_warn = $high_warn;
         $this->low_warn = $low_warn;
+
+        d_echo('Discovered ' . print_r($this, true));
     }
 
     /**

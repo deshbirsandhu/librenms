@@ -25,7 +25,6 @@
 
 namespace LibreNMS\Device\Discovery\Sensors;
 
-
 interface WirelessSensorPolling
 {
     /**
