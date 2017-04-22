@@ -8,6 +8,7 @@ over:
     - { graph: device_bits, text: 'Device Traffic' }
     - { graph: device_processor, text: 'Processor Usage' }
     - { graph: device_mempool, text: 'Memory Usage' }
+discovery_modules:
+    wireless: 1
 poller_modules:
     wifi: 1
-    wireless: 1
