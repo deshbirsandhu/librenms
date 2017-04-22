@@ -52,8 +52,7 @@ class OS
     {
         $sensors = array();
         if ($this instanceof WirelessSensorDiscovery) {
-            $discoverClients = $this->discoverClients();
-            $sensors = array_merge($sensors, $discoverClients);
+            $sensors = array_merge($sensors, $this->discoverClients());
         }
 
         // synchronize the sensors with the database

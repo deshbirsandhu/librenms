@@ -31,7 +31,6 @@ use LibreNMS\OS;
 
 class Unifi extends OS implements WirelessSensorDiscovery
 {
-
     /**
      * Returns an array of LibreNMS\Device\Sensor objects
      *
@@ -52,7 +51,7 @@ class Unifi extends OS implements WirelessSensorDiscovery
 
         $sensors = array();
         foreach ($radios as $index => $data) {
-            $sensors = new WirelessSensor(
+            $sensors[] = new WirelessSensor(
                 'clients',
                 $device['device_id'],
                 $data['oids'],
