@@ -1599,7 +1599,7 @@ wireless_sensors:
     entPhysicalIndex: { Field: entPhysicalIndex, Type: varchar(16), 'Null': true, Default: null, Extra: '' }
     entPhysicalIndex_measured: { Field: entPhysicalIndex_measured, Type: varchar(16), 'Null': true, Default: null, Extra: '' }
     lastupdate: { Field: lastupdate, Type: timestamp, 'Null': false, Default: CURRENT_TIMESTAMP, Extra: '' }
-    sensor_aggregator: { Field: sensor_aggregator, Type: varchar(16), 'Null': false, Default: avg, Extra: '' }
+    sensor_aggregator: { Field: sensor_aggregator, Type: varchar(16), 'Null': false, Default: sum, Extra: '' }
     sensor_alert: { Field: sensor_alert, Type: tinyint(1), 'Null': false, Default: '1', Extra: '' }
     sensor_class: { Field: sensor_class, Type: varchar(64), 'Null': false, Default: null, Extra: '' }
     sensor_current: { Field: sensor_current, Type: float, 'Null': true, Default: null, Extra: '' }
