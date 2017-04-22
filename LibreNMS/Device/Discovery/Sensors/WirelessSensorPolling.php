@@ -1,8 +1,8 @@
 <?php
 /**
- * unifi.inc.php
+ * WirelessSensorPolling.php
  *
- * Discover client counts for unifi devices
+ * -Description-
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,18 +23,13 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
-$client_oids = snmpwalk_cache_oid($device, 'UBNT-UniFi-MIB::unifiVapRadio', array());
-$client_oids = snmpwalk_cache_oid($device, 'UBNT-UniFi-MIB::unifiVapNumStations', $client_oids);
+namespace LibreNMS\Device\Discovery\Sensors;
 
-$radios = array();
-foreach ($client_oids as $index => $entry) {
-    $radio_name = $entry['unifiVapRadio'];
-    $radios[$radio_name]['oids'][] = '.1.3.6.1.4.1.41112.1.6.1.2.1.8.' . $index;
-    $radios[$radio_name]['count'] += $entry['unifiVapNumStations'];
-}
 
-foreach ($radios as $index => $data) {
-    $descr = strtoupper($index) . ' Radio';
-    discover_wireless_sensor($valid, 'clients', $device, $data['oids'], $index, 'unifi', $descr, $data['count'],
-        null, 1, 1, 'sum', null, null, 30, 40);
+interface WirelessSensorPolling
+{
+    /**
+     * @return void ?
+     */
+    public function pollClients();
 }

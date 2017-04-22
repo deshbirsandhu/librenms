@@ -23,33 +23,10 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
-$vars = $GLOBALS;
+use LibreNMS\OS;
 
-$wireless_sensors = array(
-    'clients',
-);
+$os = OS::getOS($device);
 
-foreach ($wireless_sensors as $sensor_class) {
-    echo ucfirst($sensor_class) . ": {$device['os']} ";
+$os->runDiscovery();
 
-    include "includes/discovery/wireless/$sensor_class/{$device['os']}.inc.php";
-
-    $entries = dbFetchRows(
-        'SELECT * FROM `wireless_sensors` WHERE `sensor_class`=? AND `device_id`=?',
-        array($sensor_class, $device['device_id'])
-    );
-
-    foreach ($entries as $entry) {
-        $sensor_id = $entry['sensor_id'];
-
-        if (!in_array($sensor_id, $valid['wireless'][$sensor_class])) {
-            echo '-';
-        dbDelete('wireless_sensors', '`sensor_id` =  ?', array($sensor_id));
-            log_event('Wireless Sensor Deleted: ' . $entry['sensor_class'] . ' ' . $entry['sensor_type'] . ' ' . $entry['sensor_index'] . ' ' . $entry['sensor_descr'], $device, 'sensor', 3, $sensor_id);
-        }
-    }
-
-    echo PHP_EOL;
-}
-
-unset($wireless_sensors, $sensor_class, $entries);
+unset($os);

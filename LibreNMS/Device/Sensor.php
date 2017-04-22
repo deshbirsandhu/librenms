@@ -1,9 +1,26 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: murrant
- * Date: 4/21/17
- * Time: 6:27 AM
+ * Sensor.php
+ *
+ * Base Sensor class
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @package    LibreNMS
+ * @link       http://librenms.org
+ * @copyright  2017 Tony Murray
+ * @author     Tony Murray <murraytony@gmail.com>
  */
 
 namespace LibreNMS\Device;
@@ -42,12 +59,12 @@ class Sensor
         $divisor = 1,
         $aggregator = 'sum',
         $current = null,
-        $entPhysicalIndex = null,
-        $entPhysicalReference = null,
         $high_limit = null,
         $low_limit = null,
         $high_warn = null,
-        $low_warn = null
+        $low_warn = null,
+        $entPhysicalIndex = null,
+        $entPhysicalReference = null
     ) {
         //
         $this->class = $class;
@@ -83,11 +100,11 @@ class Sensor
             if (empty($update)) {
                 echo '.';
             } else {
-                dbUpdate($this->table, 'WHERE `sensor_id`=?', $this->sensor_id);
+                dbUpdate($this->escapeNull($update), $this->table, '`sensor_id`=?', array($this->sensor_id));
                 echo 'U';
             }
         } else {
-            $this->sensor_id = dbInsert($new_sensor, $this->table);
+            $this->sensor_id = dbInsert($this->escapeNull($new_sensor), $this->table);
             echo '+';
         }
 
@@ -104,14 +121,15 @@ class Sensor
     {
         if (isset($this->sensor_id)) {
             return dbFetchRow(
-                'SELECT * FROM ? WHERE `sensor_id`=?',
-                array($this->table, $this->sensor_id)
+                "SELECT `{$this->table}` FROM ? WHERE `sensor_id`=?",
+                array($this->sensor_id)
             );
         }
 
         $sensor = dbFetchRow(
-            'SELECT * FROM ? WHERE `device_id`=? AND `sensor_class`=? AND `sensor_type`=? AND `sensor_index`=?',
-            array($this->table, $this->device_id, $this->class, $this->type, $this->index)
+            "SELECT * FROM `{$this->table}` " .
+            "WHERE `device_id`=? AND `sensor_class`=? AND `sensor_type`=? AND `sensor_index`=?",
+            array($this->device_id, $this->class, $this->type, $this->index)
         );
         $this->sensor_id = $sensor['sensor_id'];
         return $sensor;
@@ -142,5 +160,68 @@ class Sensor
             'entPhysicalIndex' => $this->entPhysicalIndex,
             'entPhysicalIndex_measured' => $this->entPhysicalReference,
         );
+    }
+
+    /**
+     * Escape null values so dbFacile doesn't mess them up
+     * honestly, this should be the default, but could break shit
+     *
+     * @param $array
+     * @return array
+     */
+    private function escapeNull($array)
+    {
+        return array_map(function ($value) {
+            return is_null($value) ? array('NULL') : $value;
+        }, $array);
+    }
+
+    /**
+     * Save sensors and remove invalid sensors
+     * This the sensors array should contain all the sensors of a specific class
+     * It may contain sensors from multiple tables and devices, but that isn't the primary use
+     *
+     * @param array $sensors
+     */
+    public static function sync(array $sensors)
+    {
+        // save and group up the sensors, generally, there will be only one group
+        $valid_sensors = array();
+        foreach ($sensors as $sensor) {
+            /** @var $this $sensor */
+            $valid_sensors[$sensor->table][$sensor->device_id][$sensor->class][] = $sensor->save();
+        }
+
+        // delete invalid sensors
+        foreach ($valid_sensors as $table => $device_ids) {
+            foreach ($device_ids as $device_id => $classes) {
+                foreach ($classes as $class => $sensor_ids) {
+                    self::clean($table, $device_id, $class, $sensor_ids);
+                }
+            }
+        }
+    }
+
+    /**
+     * Remove a group of sensors
+     *
+     * @param $table
+     * @param $device_id
+     * @param $class
+     * @param $sensor_ids
+     */
+    private static function clean($table, $device_id, $class, $sensor_ids)
+    {
+        $placeholders = dbGenPlaceholders(count($sensor_ids));
+        $params = array_merge(array($device_id, $class), $sensor_ids);
+        $where = "`device_id`=? AND `sensor_class`=? AND `sensor_id` NOT IN $placeholders";
+        $sql = "SELECT * FROM `$table` WHERE $where";
+
+        foreach (dbFetchRows($sql, $params) as $sensor) {
+            echo '-';
+            $message = "Wireless Sensor Deleted: $class {$sensor->type} {$sensor->index} {$sensor->description}";
+            log_event($message, $device_id, 'sensor', 3, $sensor->sensor_id);
+        }
+        dbDelete($table, $where, $params);
     }
 }

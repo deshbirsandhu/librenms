@@ -23,9 +23,11 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
+use LibreNMS\Device\WirelessSensor;
+
 $sensors = dbFetchColumn("SELECT `sensor_class` FROM `wireless_sensors` WHERE `device_id` = ? GROUP BY `sensor_class`", array($device['device_id']));
 foreach ($sensors as $sensor_class) {
-    poll_wireless_sensor($device, $sensor_class);
+    WirelessSensor::poll($device, $sensor_class);
 
     if ($sensor_class == 'clients') {
         $graphs['wifi_clients'] = true;
