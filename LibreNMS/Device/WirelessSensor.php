@@ -31,6 +31,27 @@ class WirelessSensor extends Sensor
 {
     private $access_point_ip;
 
+    /**
+     * Sensor constructor. Create a new sensor to be discovered.
+     *
+     * @param string $class Class of this sensor, must be a supported class
+     * @param int $device_id the device_id of the device that owns this sensor
+     * @param array|string $oids an array or single oid that contains the data for this sensor
+     * @param string $type the type of sensor an additional identifier to separate out sensors of the same class, generally this is the os name
+     * @param int|string $index the index of this sensor, must be stable, generally the index of the oid
+     * @param string $description A user visible description of this sensor, may be truncated in some places (like graphs)
+     * @param int $multiplier a number to multiply the value(s) by
+     * @param int $divisor a number to divide the value(s) by
+     * @param string $aggregator an operation to combine multiple numbers. Supported: sum, avg
+     * @param mixed $current The current value of this sensor, will seed the db and may be used to guess limits
+     * @param int $access_point_id The id of the AP in the access_points sensor this belongs to (generally used for controllers)
+     * @param int|float $high_limit Alerting: Maximum value
+     * @param int|float $low_limit Alerting: Minimum value
+     * @param int|float $high_warn Alerting: High warning value
+     * @param int|float $low_warn Alerting: Low warning value
+     * @param int|float $entPhysicalIndex The entPhysicalIndex this sensor is associated, often a port
+     * @param int|float $entPhysicalReference the table to look for the entPhysicalIndex, for example 'ports' (maybe unused)
+     */
     public function __construct(
         $class,
         $device_id,
@@ -38,11 +59,11 @@ class WirelessSensor extends Sensor
         $type,
         $index,
         $description,
-        $access_point_id = null,
         $multiplier = 1,
         $divisor = 1,
         $aggregator = 'sum',
         $current = null,
+        $access_point_id = null,
         $high_limit = null,
         $low_limit = null,
         $high_warn = null,

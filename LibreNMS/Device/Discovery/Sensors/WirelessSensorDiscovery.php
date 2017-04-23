@@ -28,7 +28,7 @@ namespace LibreNMS\Device\Discovery\Sensors;
 interface WirelessSensorDiscovery
 {
     /**
-     * Returns an array of LibreNMS\Device\Sensor objects
+     * Returns an array of LibreNMS\Device\Sensor objects that have been discovered
      *
      * @return array Sensors
      */

@@ -25,7 +25,7 @@
 
 use LibreNMS\OS;
 
-$os = OS::getOS($device);
+$os = OS::make($device);
 
 $os->runDiscovery();
 

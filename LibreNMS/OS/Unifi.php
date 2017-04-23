@@ -58,11 +58,11 @@ class Unifi extends OS implements WirelessSensorDiscovery
                 'unifi',
                 $index,
                 strtoupper($index) . ' Radio',
-                null,
                 1,
                 1,
                 'sum',
                 $data['count'],
+                null,
                 40,
                 null,
                 30

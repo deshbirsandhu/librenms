@@ -1,6 +1,6 @@
 <?php
 /**
- * WirelessSensorPolling.php
+ * Generic.php
  *
  * -Description-
  *
@@ -23,14 +23,11 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
-namespace LibreNMS\Device\Discovery\Sensors;
+namespace LibreNMS\OS;
 
-interface WirelessSensorPolling
+use LibreNMS\OS;
+
+class Generic extends OS
 {
-    /**
-     * Custom polling for client class wireless sensors
-     *
-     * @return void
-     */
-    public function pollClients();
+
 }
