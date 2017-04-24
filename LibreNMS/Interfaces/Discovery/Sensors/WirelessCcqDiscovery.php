@@ -1,8 +1,8 @@
 <?php
 /**
- * wireless.inc.php
+ * WirelessCcqDiscovery.php
  *
- * -Description-
+ * Discover Client Connection Quality Sensors
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,14 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
-use LibreNMS\Device\WirelessSensor;
-use LibreNMS\OS;
+namespace LibreNMS\Interfaces\Discovery\Sensors;
 
-WirelessSensor::poll(OS::make($device), $graphs);
+interface WirelessCcqDiscovery
+{
+    /**
+     * Returns an array of LibreNMS\Device\Sensor objects that have been discovered
+     *
+     * @return array Sensors
+     */
+    public function discoverWirelessCcq();
+}

@@ -23,10 +23,7 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
+use LibreNMS\Device\WirelessSensor;
 use LibreNMS\OS;
 
-$os = OS::make($device);
-
-$os->runDiscovery();
-
-unset($os);
+WirelessSensor::discover(OS::make($device));

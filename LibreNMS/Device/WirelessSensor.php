@@ -25,25 +25,28 @@
 
 namespace LibreNMS\Device;
 
-use LibreNMS\RRD\RrdDefinition;
+use LibreNMS\OS;
 
 class WirelessSensor extends Sensor
 {
+    protected static $table = 'wireless_sensors';
+    protected static $data_name = 'wireless-sensor';
+
     private $access_point_ip;
 
     /**
      * Sensor constructor. Create a new sensor to be discovered.
      *
-     * @param string $class Class of this sensor, must be a supported class
+     * @param string $type Class of this sensor, must be a supported class
      * @param int $device_id the device_id of the device that owns this sensor
      * @param array|string $oids an array or single oid that contains the data for this sensor
-     * @param string $type the type of sensor an additional identifier to separate out sensors of the same class, generally this is the os name
+     * @param string $subtype the type of sensor an additional identifier to separate out sensors of the same class, generally this is the os name
      * @param int|string $index the index of this sensor, must be stable, generally the index of the oid
      * @param string $description A user visible description of this sensor, may be truncated in some places (like graphs)
+     * @param int|float $current The current value of this sensor, will seed the db and may be used to guess limits
      * @param int $multiplier a number to multiply the value(s) by
      * @param int $divisor a number to divide the value(s) by
      * @param string $aggregator an operation to combine multiple numbers. Supported: sum, avg
-     * @param mixed $current The current value of this sensor, will seed the db and may be used to guess limits
      * @param int $access_point_id The id of the AP in the access_points sensor this belongs to (generally used for controllers)
      * @param int|float $high_limit Alerting: Maximum value
      * @param int|float $low_limit Alerting: Minimum value
@@ -53,16 +56,16 @@ class WirelessSensor extends Sensor
      * @param int|float $entPhysicalReference the table to look for the entPhysicalIndex, for example 'ports' (maybe unused)
      */
     public function __construct(
-        $class,
+        $type,
         $device_id,
         $oids,
-        $type,
+        $subtype,
         $index,
         $description,
+        $current = null,
         $multiplier = 1,
         $divisor = 1,
         $aggregator = 'sum',
-        $current = null,
         $access_point_id = null,
         $high_limit = null,
         $low_limit = null,
@@ -71,19 +74,18 @@ class WirelessSensor extends Sensor
         $entPhysicalIndex = null,
         $entPhysicalReference = null
     ) {
-        $this->table = 'wireless_sensors';
         $this->access_point_ip = $access_point_id;
         parent::__construct(
-            $class,
+            $type,
             $device_id,
             $oids,
-            $type,
+            $subtype,
             $index,
             $description,
+            $current,
             $multiplier,
             $divisor,
             $aggregator,
-            $current,
             $high_limit,
             $low_limit,
             $high_warn,
@@ -100,73 +102,40 @@ class WirelessSensor extends Sensor
         return $sensor;
     }
 
-    /**
-     * Poll all wireless sensors.
-     * TODO: Use traits, also, could be optimized
-     *
-     * @param $device
-     * @param $class
-     */
-    public static function poll($device, $class)
+    public static function discover(OS $os)
     {
-        $sensors = dbFetchRows(
-            "SELECT * FROM `wireless_sensors` WHERE `sensor_class` = ? AND `device_id` = ?",
-            array($class, $device['device_id'])
-        );
+        // Add new types here
+        static::discoverType($os, 'clients');
+        static::discoverType($os, 'noise-floor');
+        static::discoverType($os, 'ccq');
+    }
 
-        foreach ($sensors as $sensor) {
-            $oids = json_decode($sensor['sensor_oids']);
-            $data = snmp_get_multi_oid($device, $oids);
-
-            $sensor_value = current($data);
-            if (count($data) > 1) {
-                // aggregate data
-                if ($sensor['sensor_aggregator'] == 'sum') {
-                    $sensor_value = array_sum($data);
-                } elseif ($sensor['sensor_aggregator'] == 'avg') {
-                    $sensor_value = array_sum($data) / count($data);
-                }
+    protected static function enableGraphs($types, &$graphs)
+    {
+        foreach ($types as $type) {
+            if ($type == 'clients') {
+                $graphs['wifi_clients'] = true;
             }
-
-            if ($sensor['sensor_divisor'] && $sensor_value !== 0) {
-                $sensor_value = ($sensor_value / $sensor['sensor_divisor']);
-            }
-
-            if ($sensor['sensor_multiplier']) {
-                $sensor_value = ($sensor_value * $sensor['sensor_multiplier']);
-            }
-
-            echo $sensor['sensor_descr'] . ': ' . $sensor_value . PHP_EOL;
-
-            // update rrd and database
-            $rrd_name = array(
-                'wireless-sensor',
-                $sensor['sensor_class'],
-                $sensor['sensor_type'],
-                $sensor['sensor_index']
-            );
-            $rrd_def = RrdDefinition::make()->addDataset('wireless-sensor', 'GAUGE', -20000, 20000);
-
-            $fields = array(
-                'wireless-sensor' => isset($sensor_value) ? $sensor_value : 'U',
-            );
-
-            $tags = array(
-                'sensor_class' => $sensor['sensor_class'],
-                'sensor_type' => $sensor['sensor_type'],
-                'sensor_descr' => $sensor['sensor_descr'],
-                'sensor_index' => $sensor['sensor_index'],
-                'rrd_name' => $rrd_name,
-                'rrd_def' => $rrd_def
-            );
-            data_update($device, 'wireless-sensor', $tags, $fields);
-
-            $update = array(
-                'sensor_prev' => $sensor['sensor_current'],
-                'sensor_current' => $sensor_value,
-                'lastupdate' => array('NOW()'),
-            );
-            dbUpdate($update, 'wireless_sensors', "`sensor_id` = ?", array($sensor['sensor_id']));
         }
+    }
+
+    protected static function getDiscoveryInterface($type)
+    {
+        return string_to_class($type, 'LibreNMS\\Interfaces\\Discovery\\Sensors\\Wireless') . 'Discovery';
+    }
+
+    protected static function getDiscoveryMethod($type)
+    {
+        return 'discoverWireless' . string_to_class($type);
+    }
+
+    protected static function getPollingInterface($type)
+    {
+        return string_to_class($type, 'LibreNMS\\Interfaces\\Polling\\Sensors\\Wireless') . 'Polling';
+    }
+
+    protected static function getPollingMethod($type)
+    {
+        return 'pollWireless' . string_to_class($type);
     }
 }

@@ -1,8 +1,8 @@
 <?php
 /**
- * WirelessSensorDiscovery.php
+ * WirelessClients.php
  *
- * Wireless sensor discovery interface.  Add all sensor classes here
+ * Interface to discover wireless client counts
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,14 +23,14 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
-namespace LibreNMS\Device\Discovery\Sensors;
+namespace LibreNMS\Interfaces\Discovery\Sensors;
 
-interface WirelessSensorDiscovery
+interface WirelessClientsDiscovery
 {
     /**
      * Returns an array of LibreNMS\Device\Sensor objects that have been discovered
      *
      * @return array Sensors
      */
-    public function discoverClients();
+    public function discoverWirelessClients();
 }

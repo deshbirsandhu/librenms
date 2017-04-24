@@ -25,60 +25,64 @@
 
 namespace LibreNMS\Device;
 
+use LibreNMS\OS;
+use LibreNMS\RRD\RrdDefinition;
+
 class Sensor
 {
-    protected $table = 'sensors';
+    protected static $table = 'sensors';
+    protected static $data_name = 'sensor';
+
     private $sensor_id;
 
-    private $class;
+    private $type;
     private $device_id;
     private $oids;
-    private $type;
+    private $subtype;
     private $index;
+    private $description;
+    private $current;
     private $multiplier;
     private $divisor;
     private $aggregator;
-    private $current;
-    private $entPhysicalIndex;
-    private $entPhysicalReference;
     private $high_limit;
     private $low_limit;
     private $high_warn;
     private $low_warn;
-    private $description;
-
+    private $entPhysicalIndex;
+    private $entPhysicalReference;
 
     /**
      * Sensor constructor. Create a new sensor to be discovered.
      *
-     * @param string $class Class of this sensor, must be a supported class
+     * @param string $type Class of this sensor, must be a supported class
      * @param int $device_id the device_id of the device that owns this sensor
      * @param array|string $oids an array or single oid that contains the data for this sensor
-     * @param string $type the type of sensor an additional identifier to separate out sensors of the same class, generally this is the os name
+     * @param string $subtype the type of sensor an additional identifier to separate out sensors of the same class, generally this is the os name
      * @param int|string $index the index of this sensor, must be stable, generally the index of the oid
      * @param string $description A user visible description of this sensor, may be truncated in some places (like graphs)
+     * @param int|float $current The current value of this sensor, will seed the db and may be used to guess limits
      * @param int $multiplier a number to multiply the value(s) by
      * @param int $divisor a number to divide the value(s) by
      * @param string $aggregator an operation to combine multiple numbers. Supported: sum, avg
-     * @param mixed $current The current value of this sensor, will seed the db and may be used to guess limits
      * @param int|float $high_limit Alerting: Maximum value
      * @param int|float $low_limit Alerting: Minimum value
      * @param int|float $high_warn Alerting: High warning value
      * @param int|float $low_warn Alerting: Low warning value
      * @param int|float $entPhysicalIndex The entPhysicalIndex this sensor is associated, often a port
-     * @param int|float  $entPhysicalReference the table to look for the entPhysicalIndex, for example 'ports' (maybe unused)
+     * @param int|float $entPhysicalReference the table to look for the entPhysicalIndex, for example 'ports' (maybe unused)
      */
     public function __construct(
-        $class,
+        $type,
         $device_id,
         $oids,
-        $type,
+        $subtype,
         $index,
         $description,
+        $current = null,
         $multiplier = 1,
         $divisor = 1,
         $aggregator = 'sum',
-        $current = null,
         $high_limit = null,
         $low_limit = null,
         $high_warn = null,
@@ -87,16 +91,16 @@ class Sensor
         $entPhysicalReference = null
     ) {
         //
-        $this->class = $class;
+        $this->type = $type;
         $this->device_id = $device_id;
         $this->oids = (array)$oids;
-        $this->type = $type;
+        $this->subtype = $subtype;
         $this->index = $index;
         $this->description = $description;
+        $this->current = $current;
         $this->multiplier = $multiplier;
         $this->divisor = $divisor;
         $this->aggregator = $aggregator;
-        $this->current = $current;
         $this->entPhysicalIndex = $entPhysicalIndex;
         $this->entPhysicalReference = $entPhysicalReference;
         $this->high_limit = $high_limit;
@@ -119,15 +123,27 @@ class Sensor
         $new_sensor = $this->toArray();
         if ($db_sensor) {
             $update = array_diff_assoc($new_sensor, $db_sensor);
+
+            if ($db_sensor['sensor_custom'] == 'Yes') {
+                unset($update['sensor_limit']);
+                unset($update['sensor_limit_warn']);
+                unset($update['sensor_limit_low']);
+                unset($update['sensor_limit_low_warn']);
+            }
+
             if (empty($update)) {
                 echo '.';
             } else {
-                dbUpdate($this->escapeNull($update), $this->table, '`sensor_id`=?', array($this->sensor_id));
+                dbUpdate($this->escapeNull($update), $this->getTable(), '`sensor_id`=?', array($this->sensor_id));
                 echo 'U';
             }
         } else {
-            $this->sensor_id = dbInsert($this->escapeNull($new_sensor), $this->table);
-            echo '+';
+            $this->sensor_id = dbInsert($this->escapeNull($new_sensor), $this->getTable());
+            if ($this->sensor_id) {
+                $message = "Sensor Discovered: {$this->type} {$this->subtype} {$this->index} {$this->description}";
+                log_event($message, $this->device_id, static::$table, 3, $this->sensor_id);
+                echo '+';
+            }
         }
 
         return $this->sensor_id;
@@ -141,35 +157,46 @@ class Sensor
      */
     private function fetch()
     {
+        $table = $this->getTable();
         if (isset($this->sensor_id)) {
             return dbFetchRow(
-                "SELECT `{$this->table}` FROM ? WHERE `sensor_id`=?",
+                "SELECT `$table` FROM ? WHERE `sensor_id`=?",
                 array($this->sensor_id)
             );
         }
 
         $sensor = dbFetchRow(
-            "SELECT * FROM `{$this->table}` " .
+            "SELECT * FROM `$table` " .
             "WHERE `device_id`=? AND `sensor_class`=? AND `sensor_type`=? AND `sensor_index`=?",
-            array($this->device_id, $this->class, $this->type, $this->index)
+            array($this->device_id, $this->type, $this->subtype, $this->index)
         );
         $this->sensor_id = $sensor['sensor_id'];
         return $sensor;
     }
 
     /**
+     * Get the table for this sensor
+     * @return string
+     */
+    public function getTable()
+    {
+        return static::$table;
+    }
+
+    /**
      * Get an array of this sensor with fields that line up with the database.
+     * Excludes sensor_id and current
      *
      * @return array
      */
     protected function toArray()
     {
         return array(
-            'sensor_class' => $this->class,
+            'sensor_class' => $this->type,
             'device_id' => $this->device_id,
             'sensor_oids' => json_encode($this->oids),
             'sensor_index' => $this->index,
-            'sensor_type' => $this->type,
+            'sensor_type' => $this->subtype,
             'sensor_descr' => $this->description,
             'sensor_divisor' => $this->divisor,
             'sensor_multiplier' => $this->multiplier,
@@ -199,50 +226,238 @@ class Sensor
     }
 
     /**
-     * Save sensors and remove invalid sensors
-     * This the sensors array should contain all the sensors of a specific class
-     * It may contain sensors from multiple tables and devices, but that isn't the primary use
+     * Run Sensors discovery for the supplied OS (device)
      *
-     * @param array $sensors
+     * @param OS $os
      */
-    public static function sync(array $sensors)
+    public static function discover(OS $os)
     {
-        // save and group up the sensors, generally, there will be only one group
-        $valid_sensors = array();
-        foreach ($sensors as $sensor) {
-            /** @var $this $sensor */
-            $valid_sensors[$sensor->table][$sensor->device_id][$sensor->class][] = $sensor->save();
-        }
+        // Add discovery types here
+    }
 
-        // delete invalid sensors
-        foreach ($valid_sensors as $table => $device_ids) {
-            foreach ($device_ids as $device_id => $classes) {
-                foreach ($classes as $class => $sensor_ids) {
-                    self::clean($table, $device_id, $class, $sensor_ids);
-                }
-            }
+    /**
+     * Poll sensors for the supplied OS (device)
+     *
+     * @param OS $os
+     * @param $graphs
+     */
+    public static function poll(OS $os, &$graphs)
+    {
+        $table = static::$table;
+        $sensors = dbFetchColumn(
+            "SELECT `sensor_class` FROM `$table` WHERE `device_id` = ? GROUP BY `sensor_class`",
+            array($os->getDeviceId())
+        );
+
+        foreach ($sensors as $type) {
+            static::pollSensorType($os, $type);
+            static::enableGraphs($type, $graphs);
         }
     }
 
     /**
-     * Remove a group of sensors
+     * Poll all sensors of a specific class
      *
-     * @param $table
-     * @param $device_id
-     * @param $class
-     * @param $sensor_ids
+     * @param OS $os
+     * @param $type
      */
-    private static function clean($table, $device_id, $class, $sensor_ids)
+    protected static function pollSensorType($os, $type)
     {
-        $placeholders = dbGenPlaceholders(count($sensor_ids));
-        $params = array_merge(array($device_id, $class), $sensor_ids);
-        $where = "`device_id`=? AND `sensor_class`=? AND `sensor_id` NOT IN $placeholders";
-        $sql = "SELECT * FROM `$table` WHERE $where";
+        echo "$type:\n";
 
-        foreach (dbFetchRows($sql, $params) as $sensor) {
+        $table = static::$table;
+        $sensors = dbFetchRows(
+            "SELECT * FROM `$table` WHERE `sensor_class` = ? AND `device_id` = ?",
+            array($type, $os->getDeviceId())
+        );
+
+        $typeInterface = static::getPollingInterface($type);
+        if (!interface_exists($typeInterface)) {
+            echo "ERROR: Polling Interface doesn't exist! $typeInterface\n";
+        }
+
+        // fetch data
+        if ($os instanceof $typeInterface) {
+            d_echo("Using OS polling for $type\n");
+            $function = static::getPollingMethod($type);
+            $data = $os->$function($sensors);
+        } else {
+            $data = static::fetchSensorData($os->getDevice(), $sensors);
+        }
+
+        d_echo($data);
+
+        // update data
+        foreach ($sensors as $sensor) {
+            $sensor_value = $data[$sensor['sensor_id']];
+
+            echo "  {$sensor['sensor_descr']}: $sensor_value\n";
+
+            // update rrd and database
+            $rrd_name = array(
+                static::$data_name,
+                $sensor['sensor_class'],
+                $sensor['sensor_type'],
+                $sensor['sensor_index']
+            );
+            $rrd_def = RrdDefinition::make()->addDataset(static::$data_name, 'GAUGE', -20000, 20000);
+
+            $fields = array(
+                static::$data_name => isset($sensor_value) ? $sensor_value : 'U',
+            );
+
+            $tags = array(
+                'sensor_class' => $sensor['sensor_class'],
+                'sensor_type' => $sensor['sensor_type'],
+                'sensor_descr' => $sensor['sensor_descr'],
+                'sensor_index' => $sensor['sensor_index'],
+                'rrd_name' => $rrd_name,
+                'rrd_def' => $rrd_def
+            );
+            data_update($os->getDevice(), static::$data_name, $tags, $fields);
+
+            $update = array(
+                'sensor_prev' => $sensor['sensor_current'],
+                'sensor_current' => $sensor_value,
+                'lastupdate' => array('NOW()'),
+            );
+            dbUpdate($update, $table, "`sensor_id` = ?", array($sensor['sensor_id']));
+        }
+    }
+
+    /**
+     * Fetch data for the specified sensors
+     * TODO: optimize
+     *
+     * @param $device
+     * @param $sensors
+     * @return array
+     */
+    protected static function fetchSensorData($device, $sensors)
+    {
+        $data = array();
+
+        foreach ($sensors as $sensor) {
+            $oids = json_decode($sensor['sensor_oids']);
+            $snmp_data = snmp_get_multi_oid($device, $oids);
+
+            $sensor_value = current($snmp_data);
+            if (count($snmp_data) > 1) {
+                // aggregate data
+                if ($sensor['sensor_aggregator'] == 'avg') {
+                    $sensor_value = array_sum($snmp_data) / count($snmp_data);
+                } else {
+                    // sum
+                    $sensor_value = array_sum($snmp_data);
+                }
+            }
+
+            if ($sensor['sensor_divisor'] && $sensor_value !== 0) {
+                $sensor_value = ($sensor_value / $sensor['sensor_divisor']);
+            }
+
+            if ($sensor['sensor_multiplier']) {
+                $sensor_value = ($sensor_value * $sensor['sensor_multiplier']);
+            }
+
+            $data[$sensor['sensor_id']] = $sensor_value;
+        }
+
+        return $data;
+    }
+
+    protected static function enableGraphs($type, &$graphs)
+    {
+        if ($type == 'clients') {
+            $graphs['wifi_clients'] = true;
+        }
+    }
+
+    protected static function discoverType(OS $os, $type)
+    {
+        echo "$type: ";
+
+        $typeInterface = static::getDiscoveryInterface($type);
+        if (!interface_exists($typeInterface)) {
+            echo "ERROR: Discovery Interface doesn't exist! $typeInterface\n";
+        }
+
+        if ($os instanceof $typeInterface) {
+            $function = static::getDiscoveryMethod($type);
+            $sensors = $os->$function();
+        } else {
+            $sensors = array();  // TODO default implementation here or use Traits
+        }
+
+        static::sync($os->getDeviceId(), $type, $sensors);
+
+        echo PHP_EOL;
+    }
+
+    protected static function getDiscoveryInterface($type)
+    {
+        return string_to_class($type, 'LibreNMS\\Interfaces\\Discovery\\Sensors\\') . 'Discovery';
+    }
+
+    protected static function getDiscoveryMethod($type)
+    {
+        return 'discover' . string_to_class($type);
+    }
+
+    protected static function getPollingInterface($type)
+    {
+        return string_to_class($type, 'LibreNMS\\Interfaces\\Polling\\Sensors\\') . 'Polling';
+    }
+
+    protected static function getPollingMethod($type)
+    {
+        return 'poll' . string_to_class($type);
+    }
+
+    /**
+     * Save sensors and remove invalid sensors
+     * This the sensors array should contain all the sensors of a specific class
+     * It may contain sensors from multiple tables and devices, but that isn't the primary use
+     *
+     * @param int $device_id
+     * @param string $type
+     * @param array $sensors
+     */
+    public static function sync($device_id, $type, array $sensors)
+    {
+        // save and collect valid ids
+        $valid_sensor_ids = array();
+        foreach ($sensors as $sensor) {
+            /** @var $this $sensor */
+            $valid_sensor_ids[] = $sensor->save();
+        }
+
+        // delete invalid sensors
+        static::clean($device_id, $type, $valid_sensor_ids);
+    }
+
+    /**
+     * Remove invalid sensors.  Passing an empty array will remove all sensors of that class
+     *
+     * @param int $device_id
+     * @param string $type
+     * @param array $sensor_ids valid sensor ids
+     */
+    private static function clean($device_id, $type, $sensor_ids)
+    {
+        $table = static::$table;
+        $params = array($device_id, $type);
+        $where = '`device_id`=? AND `sensor_class`=? AND `sensor_id`';
+
+        if (!empty($sensor_ids)) {
+            $where .= ' NOT IN ' . dbGenPlaceholders(count($sensor_ids));
+            $params = array_merge($params, $sensor_ids);
+        }
+
+        foreach (dbFetchRows("SELECT * FROM `$table` WHERE $where", $params) as $sensor) {
             echo '-';
-            $message = "Wireless Sensor Deleted: $class {$sensor->type} {$sensor->index} {$sensor->description}";
-            log_event($message, $device_id, 'sensor', 3, $sensor->sensor_id);
+            $message = "Sensor Deleted: $type {$sensor->subtype} {$sensor->index} {$sensor->description}";
+            log_event($message, $device_id, static::$table, 3, $sensor->sensor_id);
         }
         dbDelete($table, $where, $params);
     }

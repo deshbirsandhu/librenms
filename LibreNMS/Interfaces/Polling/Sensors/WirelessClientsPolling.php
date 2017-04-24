@@ -1,8 +1,8 @@
 <?php
 /**
- * WirelessSensorPolling.php
+ * WirelessClientsPolling.php
  *
- * -Description-
+ * Custom polling for Wireless client counts
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,14 +23,16 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
-namespace LibreNMS\Device\Discovery\Sensors;
+namespace LibreNMS\Interfaces\Polling\Sensors;
 
-interface WirelessSensorPolling
+interface WirelessClientsPolling
 {
     /**
-     * Custom polling for client class wireless sensors
+     * Poll wireless client counts
+     * The returned array should be sensor_id => value pairs
      *
-     * @return void
+     * @param array $sensors Array of sensors needed to be polled
+     * @return array of polled data
      */
-    public function pollClients();
+    public function pollWirelessClients(array $sensors);
 }

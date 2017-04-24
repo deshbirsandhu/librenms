@@ -1,8 +1,8 @@
 <?php
 /**
- * wireless.inc.php
+ * WirelessNoiseFloorDiscovery.php
  *
- * -Description-
+ * Graph the noise floor for wireless devices
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,14 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
-use LibreNMS\Device\WirelessSensor;
-use LibreNMS\OS;
+namespace LibreNMS\Interfaces\Discovery\Sensors;
 
-WirelessSensor::poll(OS::make($device), $graphs);
+interface WirelessNoiseFloorDiscovery
+{
+    /**
+     * Returns an array of LibreNMS\Device\Sensor objects that have been discovered
+     *
+     * @return array
+     */
+    public function discoverWirelessNoiseFloor();
+}

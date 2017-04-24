@@ -1,8 +1,8 @@
 <?php
 /**
- * wireless.inc.php
+ * WirelessCcqPolling.php
  *
- * -Description-
+ * Custom polling for Client Connection Quality
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,16 @@
  * @author     Tony Murray <murraytony@gmail.com>
  */
 
-use LibreNMS\Device\WirelessSensor;
-use LibreNMS\OS;
+namespace LibreNMS\Interfaces\Polling\Sensors;
 
-WirelessSensor::poll(OS::make($device), $graphs);
+interface WirelessCcqPolling
+{
+    /**
+     * Poll wireless client connection quality
+     * The returned array should be sensor_id => value pairs
+     *
+     * @param array $sensors Array of sensors needed to be polled
+     * @return array of polled data
+     */
+    public function pollWirelessCcq(array $sensors);
+}

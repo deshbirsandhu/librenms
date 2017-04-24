@@ -27,7 +27,7 @@ namespace LibreNMS;
 
 use LibreNMS\Device\Discovery\Sensors\WirelessSensorDiscovery;
 use LibreNMS\Device\Discovery\Sensors\WirelessSensorPolling;
-use LibreNMS\Device\Sensor;
+use LibreNMS\Device\WirelessSensor;
 use LibreNMS\OS\Generic;
 
 class OS
@@ -69,29 +69,19 @@ class OS
      */
     public function runDiscovery()
     {
-        $sensors = array();
-        if ($this instanceof WirelessSensorDiscovery) {
-            $sensors = array_merge($sensors, $this->discoverClients());
-        }
 
-        // synchronize the sensors with the database
-        Sensor::sync($sensors);
+        // if module enabled
+        WirelessSensor::discover($this);
     }
 
     /**
      * Run all polling for this device
      * Currently only supports WirelessSensors
      */
-    public function runPolling()
+    public function runPolling(&$graphs)
     {
-        if ($this instanceof WirelessSensorDiscovery) {
-            // TODO: use traits when we have PHP >=5.4
-            if ($this instanceof WirelessSensorPolling) {
-                $this->pollClients();
-            } else {
-                // implement fallback functions?
-            }
-        }
+        // if module enabled
+        WirelessSensor::poll($this, $graphs);
     }
 
     /**
@@ -104,7 +94,7 @@ class OS
     {
         static $inst = null;
         if ($inst === null) {
-            $class = self::osNameToClassName($device['os']);
+            $class = string_to_class($device['os'], 'LibreNMS\\OS\\');
             if (class_exists($class)) {
                 $inst = new $class($device);
             } else {
@@ -112,17 +102,5 @@ class OS
             }
         }
         return $inst;
-    }
-
-    /**
-     * Remove - and _ and camel case words
-     *
-     * @param $os_name
-     * @return string
-     */
-    private static function osNameToClassName($os_name)
-    {
-        $class = str_replace(' ', '', ucwords(str_replace(array('-', '_'), ' ', $os_name)));
-        return "\\LibreNMS\\OS\\$class";
     }
 }

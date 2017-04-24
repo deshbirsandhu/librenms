@@ -25,16 +25,16 @@
 
 namespace LibreNMS\OS;
 
-use LibreNMS\Device\Discovery\Sensors\WirelessSensorDiscovery;
 use LibreNMS\Device\WirelessSensor;
+use LibreNMS\Interfaces\Discovery\Sensors\WirelessClientsDiscovery;
 use LibreNMS\OS;
 
-class Ios extends OS implements WirelessSensorDiscovery
+class Ios extends OS implements WirelessClientsDiscovery
 {
     /**
      * @return array Sensors
      */
-    public function discoverClients()
+    public function discoverWirelessClients()
     {
         $device = $this->getDevice();
 
@@ -70,10 +70,10 @@ class Ios extends OS implements WirelessSensorDiscovery
                 'ios',
                 $index,
                 $entry['entPhysicalDescr'],
+                $entry['cDot11ActiveWirelessClients'],
                 1,
                 1,
                 'sum',
-                $entry['cDot11ActiveWirelessClients'],
                 null,
                 40,
                 null,
