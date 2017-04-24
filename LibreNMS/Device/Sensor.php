@@ -30,6 +30,7 @@ use LibreNMS\RRD\RrdDefinition;
 
 class Sensor
 {
+    protected static $name = 'Sensor';
     protected static $table = 'sensors';
     protected static $data_name = 'sensor';
 
@@ -140,7 +141,8 @@ class Sensor
         } else {
             $this->sensor_id = dbInsert($this->escapeNull($new_sensor), $this->getTable());
             if ($this->sensor_id) {
-                $message = "Sensor Discovered: {$this->type} {$this->subtype} {$this->index} {$this->description}";
+                $name = static::$name;
+                $message = "$name Discovered: {$this->type} {$this->subtype} {$this->index} {$this->description}";
                 log_event($message, $this->device_id, static::$table, 3, $this->sensor_id);
                 echo '+';
             }
@@ -456,7 +458,9 @@ class Sensor
 
         foreach (dbFetchRows("SELECT * FROM `$table` WHERE $where", $params) as $sensor) {
             echo '-';
-            $message = "Sensor Deleted: $type {$sensor->subtype} {$sensor->index} {$sensor->description}";
+
+            $name = static::$name;
+            $message = "$name Deleted: $type {$sensor->subtype} {$sensor->index} {$sensor->description}";
             log_event($message, $device_id, static::$table, 3, $sensor->sensor_id);
         }
         dbDelete($table, $where, $params);
