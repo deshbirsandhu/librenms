@@ -27,7 +27,6 @@ namespace LibreNMS;
 
 use LibreNMS\Device\Discovery\Sensors\WirelessSensorDiscovery;
 use LibreNMS\Device\Discovery\Sensors\WirelessSensorPolling;
-use LibreNMS\Device\WirelessSensor;
 use LibreNMS\OS\Generic;
 
 class OS
@@ -61,27 +60,6 @@ class OS
     public function getDeviceId()
     {
         return (int)$this->device['device_id'];
-    }
-
-    /**
-     * Run all discovery for this device.
-     * Currently only supports WirelessSensors
-     */
-    public function runDiscovery()
-    {
-
-        // if module enabled
-        WirelessSensor::discover($this);
-    }
-
-    /**
-     * Run all polling for this device
-     * Currently only supports WirelessSensors
-     */
-    public function runPolling(&$graphs)
-    {
-        // if module enabled
-        WirelessSensor::poll($this, $graphs);
     }
 
     /**
