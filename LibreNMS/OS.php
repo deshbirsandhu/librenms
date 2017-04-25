@@ -67,7 +67,7 @@ class OS
      * OS Factory, returns the instance of this OS
      *
      * @param array $device device array, must have os set
-     * @return OS|null
+     * @return OS
      */
     public static function make(&$device)
     {

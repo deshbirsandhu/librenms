@@ -34,6 +34,8 @@ class Sensor
     protected static $table = 'sensors';
     protected static $data_name = 'sensor';
 
+    private $valid = true;
+
     private $sensor_id;
 
     private $type;
@@ -109,6 +111,17 @@ class Sensor
         $this->high_warn = $high_warn;
         $this->low_warn = $low_warn;
 
+        // validity not checked yet
+        if (is_null($this->current)) {
+            $data = static::fetchSensorData(
+                device_by_id_cache($device_id),
+                array($this->toArray())
+            );
+
+            $this->current = current($data);
+            $this->valid = is_numeric($this->current);
+        }
+
         d_echo('Discovered ' . print_r($this, true));
     }
 
@@ -117,12 +130,13 @@ class Sensor
      *
      * @return int the sensor_id of this sensor in the database
      */
-    public function save()
+    final public function save()
     {
         $db_sensor = $this->fetch();
 
         $new_sensor = $this->toArray();
         if ($db_sensor) {
+            unset($new_sensor['sensor_current']); // if updating, don't check sensor_current
             $update = array_diff_assoc($new_sensor, $db_sensor);
 
             if ($db_sensor['sensor_custom'] == 'Yes') {
@@ -140,7 +154,7 @@ class Sensor
             }
         } else {
             $this->sensor_id = dbInsert($this->escapeNull($new_sensor), $this->getTable());
-            if ($this->sensor_id) {
+            if ($this->sensor_id !== null) {
                 $name = static::$name;
                 $message = "$name Discovered: {$this->type} {$this->subtype} {$this->index} {$this->description}";
                 log_event($message, $this->device_id, static::$table, 3, $this->sensor_id);
@@ -343,7 +357,12 @@ class Sensor
             $oids = json_decode($sensor['sensor_oids']);
             $snmp_data = snmp_get_multi_oid($device, $oids);
 
-            $sensor_value = current($snmp_data);
+            // if no data set null and continue to the next sensor
+            if (empty($snmp_data)) {
+                $data[$sensor['sensor_id']] = null;
+                continue;
+            }
+
             if (count($snmp_data) > 1) {
                 // aggregate data
                 if ($sensor['sensor_aggregator'] == 'avg') {
@@ -352,6 +371,8 @@ class Sensor
                     // sum
                     $sensor_value = array_sum($snmp_data);
                 }
+            } else {
+                $sensor_value = current($snmp_data);
             }
 
             if ($sensor['sensor_divisor'] && $sensor_value !== 0) {
@@ -417,6 +438,17 @@ class Sensor
     }
 
     /**
+     * Is this sensor valid?
+     * If not, it should not be added to or in the database
+     *
+     * @return bool
+     */
+    public function isValid()
+    {
+        return $this->valid;
+    }
+
+    /**
      * Save sensors and remove invalid sensors
      * This the sensors array should contain all the sensors of a specific class
      * It may contain sensors from multiple tables and devices, but that isn't the primary use
@@ -425,17 +457,19 @@ class Sensor
      * @param string $type
      * @param array $sensors
      */
-    public static function sync($device_id, $type, array $sensors)
+    final public static function sync($device_id, $type, array $sensors)
     {
         // save and collect valid ids
         $valid_sensor_ids = array();
         foreach ($sensors as $sensor) {
             /** @var $this $sensor */
-            $valid_sensor_ids[] = $sensor->save();
+            if ($sensor->isValid()) {
+                $valid_sensor_ids[] = $sensor->save();
+            }
         }
 
         // delete invalid sensors
-        static::clean($device_id, $type, $valid_sensor_ids);
+        self::clean($device_id, $type, $valid_sensor_ids);
     }
 
     /**
@@ -456,13 +490,16 @@ class Sensor
             $params = array_merge($params, $sensor_ids);
         }
 
-        foreach (dbFetchRows("SELECT * FROM `$table` WHERE $where", $params) as $sensor) {
+        $delete = dbFetchRows("SELECT * FROM `$table` WHERE $where", $params);
+        foreach ($delete as $sensor) {
             echo '-';
 
             $message = static::$name;
             $message .= " Deleted: $type {$sensor['sensor_type']} {$sensor['sensor_index']} {$sensor['sensor_descr']}";
             log_event($message, $device_id, static::$table, 3, $sensor['sensor_id']);
         }
-        dbDelete($table, $where, $params);
+        if (!empty($delete)) {
+            dbDelete($table, $where, $params);
+        }
     }
 }
