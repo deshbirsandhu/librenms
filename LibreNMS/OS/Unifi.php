@@ -54,7 +54,11 @@ class Unifi extends OS implements WirelessClientsDiscovery, WirelessCcqDiscovery
         foreach ($client_oids as $index => $entry) {
             $radio_name = $vap_radios[$index];
             $radios[$radio_name]['oids'][] = '.1.3.6.1.4.1.41112.1.6.1.2.1.8.' . $index;
-            $radios[$radio_name]['count'] += $entry['unifiVapNumStations'];
+            if (isset($radios[$radio_name]['count'])) {
+                $radios[$radio_name]['count'] += $entry['unifiVapNumStations'];
+            } else {
+                $radios[$radio_name]['count'] = $entry['unifiVapNumStations'];
+            }
         }
 
         $sensors = array();
@@ -94,7 +98,6 @@ class Unifi extends OS implements WirelessClientsDiscovery, WirelessCcqDiscovery
 
         $sensors = array();
         foreach ($ccq_oids as $index => $entry) {
-            $ccq = $entry['unifiVapCcq'];
             if ($ssids[$index]) { // don't discover ssids with empty names
                 $sensors[] = new WirelessSensor(
                     'ccq',

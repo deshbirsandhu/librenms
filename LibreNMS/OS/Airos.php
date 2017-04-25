@@ -2,7 +2,7 @@
 /**
  * Airos.php
  *
- * -Description-
+ * Ubiquiti AirOS functions
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,6 @@ use LibreNMS\OS;
 
 class Airos extends OS implements WirelessClientsDiscovery, WirelessNoiseFloorDiscovery, WirelessCcqDiscovery
 {
-
     /**
      * Returns an array of LibreNMS\Device\Sensor objects that have been discovered
      *

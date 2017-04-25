@@ -32,6 +32,7 @@ use LibreNMS\OS\Generic;
 class OS
 {
     private $device; // annoying use of references to make sure this is in sync with global $device variable
+    private static $os = array();
 
     /**
      * OS constructor. Not allowed to be created directly.  Use OS::make()
@@ -47,7 +48,7 @@ class OS
      *
      * @return array
      */
-    public function getDevice()
+    public function &getDevice()
     {
         return $this->device;
     }
@@ -70,15 +71,16 @@ class OS
      */
     public static function make(&$device)
     {
-        static $inst = null;
-        if ($inst === null) {
-            $class = string_to_class($device['os'], 'LibreNMS\\OS\\');
+        $os_name = $device['os'];
+
+        if (!isset(self::$os[$os_name])) {
+            $class = str_to_class($device['os'], 'LibreNMS\\OS\\');
             if (class_exists($class)) {
-                $inst = new $class($device);
+                self::$os[$os_name] = new $class($device);
             } else {
-                $inst = new Generic($device);
+                self::$os[$os_name] = new Generic($device);
             }
         }
-        return $inst;
+        return self::$os[$os_name];
     }
 }

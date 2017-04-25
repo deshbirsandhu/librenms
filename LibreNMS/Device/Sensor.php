@@ -398,22 +398,22 @@ class Sensor
 
     protected static function getDiscoveryInterface($type)
     {
-        return string_to_class($type, 'LibreNMS\\Interfaces\\Discovery\\Sensors\\') . 'Discovery';
+        return str_to_class($type, 'LibreNMS\\Interfaces\\Discovery\\Sensors\\') . 'Discovery';
     }
 
     protected static function getDiscoveryMethod($type)
     {
-        return 'discover' . string_to_class($type);
+        return 'discover' . str_to_class($type);
     }
 
     protected static function getPollingInterface($type)
     {
-        return string_to_class($type, 'LibreNMS\\Interfaces\\Polling\\Sensors\\') . 'Polling';
+        return str_to_class($type, 'LibreNMS\\Interfaces\\Polling\\Sensors\\') . 'Polling';
     }
 
     protected static function getPollingMethod($type)
     {
-        return 'poll' . string_to_class($type);
+        return 'poll' . str_to_class($type);
     }
 
     /**
@@ -459,9 +459,9 @@ class Sensor
         foreach (dbFetchRows("SELECT * FROM `$table` WHERE $where", $params) as $sensor) {
             echo '-';
 
-            $name = static::$name;
-            $message = "$name Deleted: $type {$sensor->subtype} {$sensor->index} {$sensor->description}";
-            log_event($message, $device_id, static::$table, 3, $sensor->sensor_id);
+            $message = static::$name;
+            $message .= " Deleted: $type {$sensor['sensor_type']} {$sensor['sensor_index']} {$sensor['sensor_descr']}";
+            log_event($message, $device_id, static::$table, 3, $sensor['sensor_id']);
         }
         dbDelete($table, $where, $params);
     }

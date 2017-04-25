@@ -1764,7 +1764,7 @@ function set_user_pref($name, $value, $user_id = null)
  * @param string $namespace namespace to prepend to the name for example: LibreNMS\
  * @return string  Class name
  */
-function string_to_class($name, $namespace = null)
+function str_to_class($name, $namespace = null)
 {
     $pre_format = str_replace(array('-', '_'), ' ', $name);
     $class = str_replace(' ', '', ucwords(strtolower($pre_format)));
