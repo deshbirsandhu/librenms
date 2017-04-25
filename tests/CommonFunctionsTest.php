@@ -122,10 +122,10 @@ class CommonFunctionsTest extends \PHPUnit_Framework_TestCase
 
     public function testStringToClass()
     {
-        $this->assertSame('LibreNMS\OS\Os', string_to_class('OS', 'LibreNMS\\OS\\'));
-        $this->assertSame('SpacesName', string_to_class('spaces name'));
-        $this->assertSame('DashName', string_to_class('dash-name'));
-        $this->assertSame('UnderscoreName', string_to_class('underscore_name'));
-        $this->assertSame('LibreNMS\\AllOfThemName', string_to_class('all OF-thEm_NaMe', 'LibreNMS\\'));
+        $this->assertSame('LibreNMS\OS\Os', str_to_class('OS', 'LibreNMS\\OS\\'));
+        $this->assertSame('SpacesName', str_to_class('spaces name'));
+        $this->assertSame('DashName', str_to_class('dash-name'));
+        $this->assertSame('UnderscoreName', str_to_class('underscore_name'));
+        $this->assertSame('LibreNMS\\AllOfThemName', str_to_class('all OF-thEm_NaMe', 'LibreNMS\\'));
     }
 }
