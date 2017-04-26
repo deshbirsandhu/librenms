@@ -28,10 +28,6 @@ if ($device['type'] == 'network' || $device['type'] == 'firewall' || $device['ty
         $wificlients1 = (snmp_get($device, 'wirelessNumber.0', '-OUqnv', 'AIRPORT-BASESTATION-3-MIB') + 0);
 
         echo $wificlients1." clients\n";
-    } elseif ($device['os'] == 'hpmsm') {
-        echo 'Checking HP MSM Wireless clients... ';
-        $wificlients1 = snmp_get($device, '.1.3.6.1.4.1.8744.5.25.1.7.2.0', '-OUqnv');
-        echo $wificlients1." clients\n";
     } elseif ($device['os'] == 'symbol' && str_contains($device['hardware'], 'AP', true)) {
         echo 'Checking Symbol Wireless clients... ';
 

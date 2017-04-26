@@ -18,6 +18,7 @@ Your new OS class should extend LibreNMS\OS and implement the interfaces for the
 ```php
 namespace LibreNMS\OS;
 
+use LibreNMS\Interfaces\Discovery\Sensors\WirelessClientsDiscovery;
 use LibreNMS\OS;
 
 class Airos extends OS implements WirelessClientsDiscovery
