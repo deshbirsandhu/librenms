@@ -2,7 +2,7 @@
 /**
  * Unifi.php
  *
- * Ubiquiti Unifi functions
+ * Ubiquiti Unifi
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -105,7 +105,7 @@ class Unifi extends OS implements WirelessClientsDiscovery, WirelessCcqDiscovery
                     '.1.3.6.1.4.1.41112.1.6.1.2.1.3.'.$index,
                     'unifi',
                     $index,
-                    $ssids[$index],
+                    'SSID: ' . $ssids[$index],
                     min($entry['unifiVapCcq'] / $this->ccqDivisor, 100),
                     1,
                     $this->ccqDivisor

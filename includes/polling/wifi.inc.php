@@ -32,26 +32,6 @@ if ($device['type'] == 'network' || $device['type'] == 'firewall' || $device['ty
         echo 'Checking HP MSM Wireless clients... ';
         $wificlients1 = snmp_get($device, '.1.3.6.1.4.1.8744.5.25.1.7.2.0', '-OUqnv');
         echo $wificlients1." clients\n";
-    } elseif ($device['os'] == 'routeros') {
-        // MikroTik RouterOS
-        // Check inventory for wireless card in device. Valid types be here:
-        $wirelesscards = array(
-            'Wireless',
-            'Atheros',
-        );
-        $sql = 'SELECT COUNT(*) FROM `entPhysical` WHERE `device_id` = ? AND `entPhysicalDescr` LIKE ?';
-        foreach ($wirelesscards as $wirelesscheck) {
-            if (dbFetchCell($sql, array($device['device_id'], '%'.$wirelesscheck.'%')) >= 1) {
-                echo 'Checking RouterOS Wireless clients... ';
-
-                $wificlients1 = snmp_get($device, 'mtxrWlApClientCount', '-OUqnv', 'MIKROTIK-MIB');
-
-                echo (($wificlients1 + 0)." clients\n");
-                break;
-            }
-
-            unset($wirelesscards);
-        }
     } elseif ($device['os'] == 'symbol' && str_contains($device['hardware'], 'AP', true)) {
         echo 'Checking Symbol Wireless clients... ';
 

@@ -1,8 +1,8 @@
 <?php
 /**
- * Airos.php
+ * Routeros.php
  *
- * Ubiquiti AirOS
+ * Mikrotik RouterOS
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,8 +31,10 @@ use LibreNMS\Interfaces\Discovery\Sensors\WirelessClientsDiscovery;
 use LibreNMS\Interfaces\Discovery\Sensors\WirelessNoiseFloorDiscovery;
 use LibreNMS\OS;
 
-class Airos extends OS implements WirelessClientsDiscovery, WirelessNoiseFloorDiscovery, WirelessCcqDiscovery
+class Routeros extends OS implements WirelessClientsDiscovery, WirelessNoiseFloorDiscovery, WirelessCcqDiscovery
 {
+    private $data;
+
     /**
      * Returns an array of LibreNMS\Device\Sensor objects that have been discovered
      *
@@ -40,22 +42,10 @@ class Airos extends OS implements WirelessClientsDiscovery, WirelessNoiseFloorDi
      */
     public function discoverWirelessClients()
     {
-        $oid = '.1.3.6.1.4.1.41112.1.4.5.1.15.1'; //UBNT-AirMAX-MIB::ubntWlStatStaCount.1
-        return array(
-            new WirelessSensor('clients', $this->getDeviceId(), $oid, 'airos', 1, 'Clients')
-        );
-    }
-
-    /**
-     * Returns an array of LibreNMS\Device\Sensor objects that have been discovered
-     *
-     * @return array
-     */
-    public function discoverWirelessNoiseFloor()
-    {
-        $oid = '.1.3.6.1.4.1.41112.1.4.5.1.8.1'; //UBNT-AirMAX-MIB::ubntWlStatNoiseFloor.1
-        return array(
-            new WirelessSensor('noise-floor', $this->getDeviceId(), $oid, 'airos', 1, 'Noise Floor')
+        return $this->discoverSensor(
+            'clients',
+            'mtxrWlApClientCount',
+            '.1.3.6.1.4.1.14988.1.1.1.3.1.6.'
         );
     }
 
@@ -66,9 +56,54 @@ class Airos extends OS implements WirelessClientsDiscovery, WirelessNoiseFloorDi
      */
     public function discoverWirelessCcq()
     {
-        $oid = '.1.3.6.1.4.1.41112.1.4.5.1.7.1'; //UBNT-AirMAX-MIB::ubntWlStatCcq.1
-        return array(
-            new WirelessSensor('ccq', $this->getDeviceId(), $oid, 'airos', 1, 'CCQ')
+        return $this->discoverSensor(
+            'ccq',
+            'mtxrWlApOverallTxCCQ',
+            '.1.3.6.1.4.1.14988.1.1.1.3.1.10.'
         );
+    }
+
+    /**
+     * Returns an array of LibreNMS\Device\Sensor objects that have been discovered
+     *
+     * @return array Sensors
+     */
+    public function discoverWirelessNoiseFloor()
+    {
+        return $this->discoverSensor(
+            'noise-floor',
+            'mtxrWlApNoiseFloor',
+            '.1.3.6.1.4.1.14988.1.1.1.3.1.9.'
+        );
+    }
+
+
+    private function fetchData()
+    {
+        if (is_null($this->data)) {
+            $this->data = snmpwalk_cache_oid($this->getDevice(), 'mtxrWlApTable', array(), 'MIKROTIK-MIB');
+        }
+
+        return $this->data;
+    }
+
+    private function discoverSensor($type, $oid, $num_oid_base)
+    {
+        $data = $this->fetchData();
+
+        $sensors = array();
+        foreach ($data as $index => $entry) {
+            $sensors[] = new WirelessSensor(
+                $type,
+                $this->getDeviceId(),
+                $num_oid_base . $index,
+                'mikrotik',
+                $index,
+                'SSID: ' . $entry['mtxrWlApSsid'],
+                $entry[$oid]
+            );
+        }
+
+        return $sensors;
     }
 }
