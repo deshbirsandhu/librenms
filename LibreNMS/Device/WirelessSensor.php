@@ -54,7 +54,7 @@ class WirelessSensor extends Sensor
      * @param int|float $high_warn Alerting: High warning value
      * @param int|float $low_warn Alerting: Low warning value
      * @param int|float $entPhysicalIndex The entPhysicalIndex this sensor is associated, often a port
-     * @param int|float $entPhysicalReference the table to look for the entPhysicalIndex, for example 'ports' (maybe unused)
+     * @param int|float $entPhysicalMeasured the table to look for the entPhysicalIndex, for example 'ports' (maybe unused)
      */
     public function __construct(
         $type,
@@ -73,7 +73,7 @@ class WirelessSensor extends Sensor
         $high_warn = null,
         $low_warn = null,
         $entPhysicalIndex = null,
-        $entPhysicalReference = null
+        $entPhysicalMeasured = null
     ) {
         $this->access_point_ip = $access_point_id;
         parent::__construct(
@@ -92,7 +92,7 @@ class WirelessSensor extends Sensor
             $high_warn,
             $low_warn,
             $entPhysicalIndex,
-            $entPhysicalReference
+            $entPhysicalMeasured
         );
     }
 

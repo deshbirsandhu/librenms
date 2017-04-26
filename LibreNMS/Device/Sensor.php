@@ -53,7 +53,7 @@ class Sensor
     private $high_warn;
     private $low_warn;
     private $entPhysicalIndex;
-    private $entPhysicalReference;
+    private $entPhysicalMeasured;
 
     /**
      * Sensor constructor. Create a new sensor to be discovered.
@@ -73,7 +73,7 @@ class Sensor
      * @param int|float $high_warn Alerting: High warning value
      * @param int|float $low_warn Alerting: Low warning value
      * @param int|float $entPhysicalIndex The entPhysicalIndex this sensor is associated, often a port
-     * @param int|float $entPhysicalReference the table to look for the entPhysicalIndex, for example 'ports' (maybe unused)
+     * @param int|float $entPhysicalMeasured the table to look for the entPhysicalIndex, for example 'ports' (maybe unused)
      */
     public function __construct(
         $type,
@@ -91,7 +91,7 @@ class Sensor
         $high_warn = null,
         $low_warn = null,
         $entPhysicalIndex = null,
-        $entPhysicalReference = null
+        $entPhysicalMeasured = null
     ) {
         //
         $this->type = $type;
@@ -105,7 +105,7 @@ class Sensor
         $this->divisor = $divisor;
         $this->aggregator = $aggregator;
         $this->entPhysicalIndex = $entPhysicalIndex;
-        $this->entPhysicalReference = $entPhysicalReference;
+        $this->entPhysicalMeasured = $entPhysicalMeasured;
         $this->high_limit = $high_limit;
         $this->low_limit = $low_limit;
         $this->high_warn = $high_warn;
@@ -223,7 +223,7 @@ class Sensor
             'sensor_limit_low_warn' => $this->low_warn,
             'sensor_current' => $this->current,
             'entPhysicalIndex' => $this->entPhysicalIndex,
-            'entPhysicalIndex_measured' => $this->entPhysicalReference,
+            'entPhysicalIndex_measured' => $this->entPhysicalMeasured,
         );
     }
 
