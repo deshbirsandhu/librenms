@@ -255,9 +255,8 @@ class Sensor
      * Poll sensors for the supplied OS (device)
      *
      * @param OS $os
-     * @param $graphs
      */
-    public static function poll(OS $os, &$graphs)
+    public static function poll(OS $os)
     {
         $table = static::$table;
         $sensors = dbFetchColumn(
@@ -267,7 +266,6 @@ class Sensor
 
         foreach ($sensors as $type) {
             static::pollSensorType($os, $type);
-            static::enableGraphs($type, $graphs);
         }
     }
 
@@ -351,28 +349,35 @@ class Sensor
      */
     protected static function fetchSensorData($device, $sensors)
     {
-        $data = array();
+        $oids = self::prepSensorOids($sensors, get_device_oid_limit($device));
 
+        $snmp_data = array();
+        foreach ($oids as $oid_chunk) {
+            $multi_data = snmp_get_multi_oid($device, $oid_chunk, '-OUQnt');
+            $snmp_data = array_merge($snmp_data, $multi_data);
+        }
+
+        $sensor_data = array();
         foreach ($sensors as $sensor) {
-            $oids = json_decode($sensor['sensor_oids']);
-            $snmp_data = snmp_get_multi_oid($device, $oids);
+            $requested_oids = array_flip(json_decode($sensor['sensor_oids']));
+            $data = array_intersect_key($snmp_data, $requested_oids);
 
             // if no data set null and continue to the next sensor
-            if (empty($snmp_data)) {
+            if (empty($data)) {
                 $data[$sensor['sensor_id']] = null;
                 continue;
             }
 
-            if (count($snmp_data) > 1) {
+            if (count($data) > 1) {
                 // aggregate data
                 if ($sensor['sensor_aggregator'] == 'avg') {
-                    $sensor_value = array_sum($snmp_data) / count($snmp_data);
+                    $sensor_value = array_sum($data) / count($data);
                 } else {
                     // sum
-                    $sensor_value = array_sum($snmp_data);
+                    $sensor_value = array_sum($data);
                 }
             } else {
-                $sensor_value = current($snmp_data);
+                $sensor_value = current($data);
             }
 
             if ($sensor['sensor_divisor'] && $sensor_value !== 0) {
@@ -383,17 +388,31 @@ class Sensor
                 $sensor_value = ($sensor_value * $sensor['sensor_multiplier']);
             }
 
-            $data[$sensor['sensor_id']] = $sensor_value;
+            $sensor_data[$sensor['sensor_id']] = $sensor_value;
         }
 
-        return $data;
+        return $sensor_data;
     }
 
-    protected static function enableGraphs($type, &$graphs)
+
+    /**
+     * Get a list of unique oids from an array of sensors and break it into chunks.
+     *
+     * @param $sensors
+     * @param int $chunk How many oids per chunk.  Default 10.
+     * @return array
+     */
+    private static function prepSensorOids($sensors, $chunk = 10)
     {
-        if ($type == 'clients') {
-            $graphs['wifi_clients'] = true;
-        }
+        // Sort the incoming oids and sensors
+        $oids = array_reduce($sensors, function ($carry, $sensor) {
+            return array_merge($carry, json_decode($sensor['sensor_oids']));
+        }, array());
+
+        // only unique oids and chunk
+        $oids = array_chunk(array_keys(array_flip($oids)), $chunk);
+
+        return $oids;
     }
 
     protected static function discoverType(OS $os, $type)

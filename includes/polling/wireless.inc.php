@@ -26,4 +26,4 @@
 use LibreNMS\Device\WirelessSensor;
 use LibreNMS\OS;
 
-WirelessSensor::poll(OS::make($device), $graphs);
+WirelessSensor::poll(OS::make($device));

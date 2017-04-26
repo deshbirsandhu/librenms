@@ -111,15 +111,6 @@ class WirelessSensor extends Sensor
         static::discoverType($os, 'ccq');
     }
 
-    protected static function enableGraphs($types, &$graphs)
-    {
-        foreach ($types as $type) {
-            if ($type == 'clients') {
-                $graphs['wifi_clients'] = true;
-            }
-        }
-    }
-
     protected static function getDiscoveryInterface($type)
     {
         return str_to_class($type, 'LibreNMS\\Interfaces\\Discovery\\Sensors\\Wireless') . 'Discovery';

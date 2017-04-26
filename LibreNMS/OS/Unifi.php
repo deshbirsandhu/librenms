@@ -49,6 +49,7 @@ class Unifi extends OS implements WirelessClientsDiscovery, WirelessCcqDiscovery
             return array();
         }
         $vap_radios = $this->getCacheData('unifiVapRadio');
+        $ssids = $this->getCacheData('unifiVapEssId');
 
         $radios = array();
         foreach ($client_oids as $index => $entry) {
@@ -62,6 +63,8 @@ class Unifi extends OS implements WirelessClientsDiscovery, WirelessCcqDiscovery
         }
 
         $sensors = array();
+
+        // discover client counts by radio
         foreach ($radios as $index => $data) {
             $sensors[] = new WirelessSensor(
                 'clients',
@@ -80,6 +83,20 @@ class Unifi extends OS implements WirelessClientsDiscovery, WirelessCcqDiscovery
                 30
             );
         }
+
+        // discover client counts by SSID
+        foreach ($client_oids as $index => $entry) {
+            $sensors[] = new WirelessSensor(
+                'clients',
+                $this->getDeviceId(),
+                '.1.3.6.1.4.1.41112.1.6.1.2.1.8.' . $index,
+                'unifi',
+                $index,
+                'SSID: ' . $ssids[$index],
+                $entry['unifiVapNumStations']
+            );
+        }
+
         return $sensors;
     }
 
