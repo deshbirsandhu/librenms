@@ -1,5 +1,6 @@
 <?php
 
+// this determines the order of the tabs
 $type_text = array(
     'overview'    => 'Overview',
     'clients'     => 'Clients',
@@ -42,8 +43,6 @@ foreach ($datas as $type) {
     if ($vars['metric'] == $type) {
         echo '</span>';
     }
-
-
 }
 
 print_optionbar_end();
