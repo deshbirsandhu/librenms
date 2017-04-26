@@ -316,10 +316,10 @@ class Sensor
                 $sensor['sensor_type'],
                 $sensor['sensor_index']
             );
-            $rrd_def = RrdDefinition::make()->addDataset(static::$data_name, 'GAUGE', -20000, 20000);
+            $rrd_def = RrdDefinition::make()->addDataset('sensor', 'GAUGE', -20000, 20000);
 
             $fields = array(
-                static::$data_name => isset($sensor_value) ? $sensor_value : 'U',
+                'sensor' => isset($sensor_value) ? $sensor_value : 'U',
             );
 
             $tags = array(
