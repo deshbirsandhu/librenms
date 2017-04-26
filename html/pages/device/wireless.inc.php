@@ -4,7 +4,7 @@
 $type_text = array(
     'overview'    => 'Overview',
     'clients'     => 'Clients',
-    'ccq'         => 'CCQ',
+    'ccq'         => 'Client Connection Quality',
     'noise-floor' => 'Noise Floor',
 );
 
