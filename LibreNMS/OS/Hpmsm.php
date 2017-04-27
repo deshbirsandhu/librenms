@@ -25,11 +25,13 @@
 
 namespace LibreNMS\OS;
 
+use LibreNMS\Device\AccessPoint;
 use LibreNMS\Device\WirelessSensor;
+use LibreNMS\Interfaces\Discovery\AccessPointsDiscovery;
 use LibreNMS\Interfaces\Discovery\Sensors\WirelessClientsDiscovery;
 use LibreNMS\OS;
 
-class Hpmsm extends OS implements WirelessClientsDiscovery
+class Hpmsm extends OS implements WirelessClientsDiscovery, AccessPointsDiscovery
 {
     /**
      * Returns an array of LibreNMS\Device\Sensor objects that have been discovered
@@ -48,5 +50,55 @@ class Hpmsm extends OS implements WirelessClientsDiscovery
                 'Clients'
             )
         );
+    }
+
+    /**
+     * Return an array of valid AccessPoint objects
+     *
+     * @return array AccessPoint
+     */
+    public function discoverAccessPoints()
+    {
+        // TODO some sort of check before a barrage of walks
+        $device_oids = snmp_cache_oid('coDevDisSystemName', $this->getDevice(), array(), 'COLUBRIS-DEVICE-MIB');
+        $device_oids = snmp_cache_oid('coDevDisMacAddress', $this->getDevice(), $device_oids, 'COLUBRIS-DEVICE-MIB');
+        $radio_oids = snmpwalk_cache_twopart_oid($this->getDevice(), 'coDevWirIfStaTransmitPower', array(), 'COLUBRIS-DEVICE-WIRELESS-MIB');
+//        $radio_oids = snmpwalk_cache_twopart_oid($this->getDevice(), 'coDevWirIfStaRadioType', $radio_oids, 'COLUBRIS-DEVICE-WIRELESS-MIB'); // type
+        $radio_oids = snmpwalk_cache_twopart_oid($this->getDevice(), 'coDevWirIfStaNumberOfClient', $radio_oids, 'COLUBRIS-DEVICE-WIRELESS-MIB');
+        $radio_oids = snmpwalk_cache_twopart_oid($this->getDevice(), 'coDevWirIfStaOperatingChannel', $radio_oids, 'COLUBRIS-DEVICE-WIRELESS-MIB');
+
+
+        $aps = array();
+        foreach ($device_oids as $device_index => $device_data) {
+            foreach ($radio_oids[$device_index] as $radio_index => $radio_data) {
+                $aps[] = new AccessPoint(
+                    $device_data['coDevDisSystemName'],
+                    $this->getDeviceId(),
+                    $radio_index,
+                    $this->channelToType($radio_data['coDevWirIfStaOperatingChannel']),
+                    $device_data['coDevDisMacAddress'],
+                    $radio_data['coDevWirIfStaOperatingChannel'],
+                    $radio_data['coDevWirIfStaTransmitPower'],
+                    0,
+                    $radio_data['coDevWirIfStaNumberOfClient'],
+                    0,
+                    1,
+                    1,
+                    0
+                );
+            }
+        }
+
+        return $aps;
+    }
+
+    private function channelToType($channel)
+    {
+        if ($channel >= 1 && $channel <= 14) {
+            return '2.4GHz';
+        } elseif ($channel >= 35 && $channel <= 165) {
+            return '5GHz';
+        }
+        return 'Unknown';
     }
 }
