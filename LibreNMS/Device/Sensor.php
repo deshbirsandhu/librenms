@@ -25,10 +25,12 @@
 
 namespace LibreNMS\Device;
 
+use LibreNMS\Interfaces\DiscoveryModule;
+use LibreNMS\Interfaces\PollerModule;
 use LibreNMS\OS;
 use LibreNMS\RRD\RrdDefinition;
 
-class Sensor
+class Sensor implements DiscoveryModule, PollerModule
 {
     protected static $name = 'Sensor';
     protected static $table = 'sensors';
