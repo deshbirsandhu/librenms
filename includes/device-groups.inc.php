@@ -113,7 +113,7 @@ function GenGroupSQL($pattern, $search = '', $extra = 0)
     $join = "";
     while ($i < $x) {
         if (isset($tables[$i+1])) {
-            $gtmp = ResolveGlues(array($tables[$i+1]), 'device_id');
+            $gtmp = ResolveGlues($tables[$i+1], 'device_id');
             if ($gtmp === false) {
                 //Cannot resolve glue-chain. Rule is invalid.
                 return false;

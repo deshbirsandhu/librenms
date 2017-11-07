@@ -38,9 +38,9 @@ function GenSQL($rule)
     //Pretty-print rule to dissect easier
     $pretty = array('&&' => ' && ', '||' => ' || ');
     $rule = str_replace(array_keys($pretty), $pretty, $rule);
-    $tmp = explode(" ", $rule);
+    $g_table = explode(" ", $rule);
     $tables = array();
-    foreach ($tmp as $opt) {
+    foreach ($g_table as $opt) {
         if (strstr($opt, '%') && strstr($opt, '.')) {
             $tmpp = explode(".", $opt, 2);
             $tmpp[0] = str_replace("%", "", $tmpp[0]);
@@ -48,40 +48,37 @@ function GenSQL($rule)
             $rule = str_replace($opt, $tmpp[0].'.'.$tmpp[1], $rule);
         }
     }
-    $tables = array_keys(array_flip($tables));
-    if (dbFetchCell('SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_NAME = ? && COLUMN_NAME = ?', array($tables[0],'device_id')) != 1) {
-        //Our first table has no valid glue, append the 'devices' table to it!
-        array_unshift($tables, 'devices');
-    }
-    $x = sizeof($tables)-1;
-    $i = 0;
+    $tables = array_keys(array_flip($tables));  // array_unique
+
     $join = "";
-    while ($i < $x) {
-        if (isset($tables[$i+1])) {
-            $gtmp = ResolveGlues(array($tables[$i+1]), 'device_id');
-            if ($gtmp === false) {
-                //Cannot resolve glue-chain. Rule is invalid.
-                return false;
-            }
-            $last = "";
-            $qry = "";
-            foreach ($gtmp as $glue) {
-                if (empty($last)) {
-                    list($tmp,$last) = explode('.', $glue);
-                    $qry .= $glue.' = ';
+    foreach ($tables as $table) {
+        $gtmp = ResolveGlues($table, 'device_id');
+        if ($gtmp === false) {
+            //Cannot resolve glue-chain. Rule is invalid.
+            return false;
+        }
+        $last = "";
+        $join .= '( ';
+        foreach ($gtmp as $glue) {
+            if (empty($last)) {
+                list($g_table, $last) = explode('.', $glue);
+                $join .= $glue.' = ';
+            } else {
+                list($g_table, $new) = explode('.', $glue);
+                if ($new == 'device_id') {
+                    $join .= "$g_table.device_id = {$tables[0]}.device_id ) && ";
                 } else {
-                    list($tmp,$new) = explode('.', $glue);
-                    $qry .= $tmp.'.'.$last.' && '.$tmp.'.'.$new.' = ';
+                    $join .= $g_table.'.'.$last.' && '.$g_table.'.'.$new.' = ';
                     $last = $new;
                 }
-                if (!in_array($tmp, $tables)) {
-                    $tables[] = $tmp;
-                }
             }
-            $join .= "( ".$qry.$tables[0].".device_id ) && ";
+            if (!in_array($g_table, $tables)) {
+                $tables[] = $g_table;
+            }
         }
-        $i++;
+//        $join .= "( ".$qry.$tables[0].".device_id ) && ";
     }
+
     $sql = "SELECT * FROM ".implode(",", $tables)." WHERE (".$join."".str_replace("(", "", $tables[0]).".device_id = ?) && (".str_replace(array("%","@","!~","~"), array("",".*","NOT REGEXP","REGEXP"), $rule).")";
     return $sql;
 }

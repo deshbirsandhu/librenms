@@ -1347,63 +1347,81 @@ function get_port_id($ports_mapped, $port, $port_association_mode)
 
 /**
  * Create a glue-chain
- * @param array $tables Initial Tables to construct glue-chain
+ * @param string|array $table Initial Table to construct glue-chain
  * @param string $target Glue to find (usual device_id)
- * @param int $x Recursion Anchor
- * @param array $hist History of processed tables
- * @param array $last Glues on the fringe
- * @return string|boolean
+ * @param int $recur_count Recursive use only (Recursion depth)
+ * @param array $history Recursive use only (History of processed id columns)
+ * @return array|boolean
  */
-function ResolveGlues($tables, $target, $x = 0, $hist = array(), $last = array())
+function ResolveGlues($table, $target, $recur_count = 0, $history = array())
 {
-    if (sizeof($tables) == 1 && $x != 0) {
-        if (dbFetchCell('SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_NAME = ? && COLUMN_NAME = ?', array($tables[0],$target)) == 1) {
-            return array_merge($last, array($tables[0].'.'.$target));
-        } else {
-            return false;
+    if ($recur_count == 0 && dbFetchCell('SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_NAME = ? && COLUMN_NAME = ?', array($table, $target))) {
+        // Check for direct relation
+        return array("$table.$target");
+    } elseif ($recur_count == 30) {
+        // limit recursion to 30 deep, should only be 1-4
+        echo "Hit recursion limit\n";
+        return false;
+    }
+
+    // Check for relations one step away
+    $sql = 'SELECT b.COLUMN_NAME, b.TABLE_NAME FROM information_schema.COLUMNS AS a, information_schema.COLUMNS AS b, information_schema.COLUMNS AS c WHERE a.TABLE_NAME = ? && a.COLUMN_NAME LIKE "%\_id"';
+    $params = array($table);
+    // exclude any ids already searched
+    if (!empty($history)) {
+        $sql .= ' && a.COLUMN_NAME NOT IN ' . dbGenPlaceholders(count($history));
+        $params = array_merge($params, $history);
+    }
+    $sql .= ' && a.COLUMN_NAME = b.COLUMN_NAME && b.TABLE_NAME = c.TABLE_NAME && c.COLUMN_NAME = ?';
+    $params[] = $target;
+
+    $one_step_tables = dbFetchRows($sql, $params);
+    if (!empty($one_step_tables)) {
+        // found one!
+        // group by column
+        $candidates = array();
+        foreach ($one_step_tables as $one_step_table) {
+            $candidates[$one_step_table['COLUMN_NAME']][] = $one_step_table['TABLE_NAME'];
         }
-    } else {
-        $x++;
-        if ($x > 30) {
-            //Too much recursion. Abort.
-            return false;
-        }
-        foreach ($tables as $table) {
-            $glues = dbFetchRows('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_NAME = ? && COLUMN_NAME LIKE "%\_id"', array($table));
-            if (sizeof($glues) == 1 && $glues[0]['COLUMN_NAME'] != $target) {
-                //Search for new candidates to expand
-                $ntables = array();
-                list($tmp) = explode('_', $glues[0]['COLUMN_NAME'], 2);
-                $ntables[] = $tmp;
-                $ntables[] = $tmp.'s';
-                $tmp = dbFetchRows('SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_NAME LIKE "'.substr($table, 0, -1).'_%" && TABLE_NAME != "'.$table.'"');
-                foreach ($tmp as $expand) {
-                    $ntables[] = $expand['TABLE_NAME'];
-                }
-                $tmp = ResolveGlues($ntables, $target, $x++, array_merge($tables, $ntables), array_merge($last, array($table.'.'.$glues[0]['COLUMN_NAME'])));
-                if (is_array($tmp)) {
-                    return $tmp;
-                }
-            } else {
-                foreach ($glues as $glue) {
-                    if ($glue['COLUMN_NAME'] == $target) {
-                        return array_merge($last, array($table.'.'.$target));
-                    } else {
-                        list($tmp) = explode('_', $glue['COLUMN_NAME']);
-                        $tmp .= 's';
-                        if (!in_array($tmp, $tables) && !in_array($tmp, $hist)) {
-                            //Expand table
-                            $tmp = ResolveGlues(array($tmp), $target, $x++, array_merge($tables, array($tmp)), array_merge($last, array($table.'.'.$glue['COLUMN_NAME'])));
-                            if (is_array($tmp)) {
-                                return $tmp;
-                            }
-                        }
-                    }
-                }
+
+        // check for best match first
+        foreach ($candidates as $key => $c_tables) {
+            $best = preg_replace('/_id$/', 's', $key);
+            if (in_array($best, $c_tables)) {
+                return array("$table.$key", "$best.$target");
             }
         }
+
+        // just pick one then
+        $first_table = $one_step_tables[0]['TABLE_NAME'];
+        $first_column = $one_step_tables[0]['COLUMN_NAME'];
+        return array("$table.$first_column", "$first_table.$target");
     }
-    //You should never get here.
+
+
+    // go another level deeper
+    $sql = 'SELECT a.COLUMN_NAME, b.TABLE_NAME FROM information_schema.COLUMNS as a, information_schema.COLUMNS AS b WHERE a.TABLE_NAME=? && a.COLUMN_NAME LIKE "%\_id"';
+    $params = array($table);
+    // exclude any ids already searched
+    if (!empty($history)) {
+        $sql .= ' && a.COLUMN_NAME NOT IN ' . dbGenPlaceholders(count($history));
+        $params = array_merge($params, $history);
+    }
+    $sql .= ' && a.COLUMN_NAME = b.COLUMN_NAME';
+
+    $possible_glues = dbFetchRows($sql, $params);
+
+    foreach ($possible_glues as $possible_glue) {
+        $glue_table = $possible_glue['TABLE_NAME'];
+        $glue_column = $possible_glue['COLUMN_NAME'];
+        $history[] = $glue_column;
+        $r_glue = ResolveGlues($glue_table, $target, $recur_count+1, $history);
+        if ($r_glue !== false) {
+            return array_merge(array("$table.$glue_column"), $r_glue);
+        }
+    }
+
+    // didn't find anything
     return false;
 }
 
