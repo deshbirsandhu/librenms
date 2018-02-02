@@ -38,7 +38,8 @@
         "phpunit/phpunit": "4.*",
         "jakub-onderka/php-parallel-lint": "*",
         "jakub-onderka/php-console-highlighter": "*",
-        "fojuth/readmegen": "1.*"
+        "fojuth/readmegen": "1.*",
+        "ins0/github-changelog-generator": "^0.2.1"
     },
     "autoload": {
         "psr-4": {

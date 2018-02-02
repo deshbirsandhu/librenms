@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "58605a691f3eae02b0c21adbf875c60e",
+    "content-hash": "84814087d100a6391418a24ea3cd8a9e",
     "packages": [
         {
             "name": "amenadiel/jpgraph",
@@ -874,6 +874,67 @@
             "time": "2015-07-17T18:39:03+00:00"
         },
         {
+            "name": "ins0/github-changelog-generator",
+            "version": "v0.2.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ins0/github-changelog-generator.git",
+                "reference": "080ed542cf822586d39573adc66bc006f4c165ba"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ins0/github-changelog-generator/zipball/080ed542cf822586d39573adc66bc006f4c165ba",
+                "reference": "080ed542cf822586d39573adc66bc006f4c165ba",
+                "shasum": ""
+            },
+            "require": {
+                "nategood/commando": "^0.2.8",
+                "php": "~5.4|~7.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "4.*"
+            },
+            "bin": [
+                "bin/github-changelog-generator"
+            ],
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "ins0\\GitHub\\": "src"
+                },
+                "classmap": [
+                    "github-changelog-generator.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Nathan Bishop",
+                    "email": "nbish11@hotmail.com",
+                    "homepage": "https://github.com/nbish11",
+                    "role": "Developer"
+                },
+                {
+                    "name": "Marco Rieger",
+                    "email": "rieger@racecore.de",
+                    "homepage": "https://github.com/ins0",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Creates a markdown changelog for your GitHub repository.",
+            "keywords": [
+                "changelog",
+                "generator",
+                "github",
+                "keepachangelog",
+                "markdown"
+            ],
+            "time": "2017-11-05T15:55:44+00:00"
+        },
+        {
             "name": "jakub-onderka/php-console-color",
             "version": "0.1",
             "source": {
@@ -1006,6 +1067,103 @@
             "description": "This tool check syntax of PHP files about 20x faster than serial check.",
             "homepage": "https://github.com/JakubOnderka/PHP-Parallel-Lint",
             "time": "2015-12-15T10:42:16+00:00"
+        },
+        {
+            "name": "kevinlebrun/colors.php",
+            "version": "0.4.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/kevinlebrun/colors.php.git",
+                "reference": "d132f36d06e48ea080855af19b4bcb1fb615224a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/kevinlebrun/colors.php/zipball/d132f36d06e48ea080855af19b4bcb1fb615224a",
+                "reference": "d132f36d06e48ea080855af19b4bcb1fb615224a",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.0"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "3.7.*",
+                "satooshi/php-coveralls": "dev-master",
+                "squizlabs/php_codesniffer": "1.*"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Colors": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Kevin Le Brun",
+                    "email": "lebrun.k@gmail.com",
+                    "homepage": "http://kevinlebrun.fr",
+                    "role": "developer"
+                }
+            ],
+            "description": "Colors for PHP CLI scripts",
+            "homepage": "https://github.com/kevinlebrun/colors.php",
+            "keywords": [
+                "cli",
+                "color",
+                "colors",
+                "console",
+                "shell"
+            ],
+            "time": "2014-12-23T01:23:37+00:00"
+        },
+        {
+            "name": "nategood/commando",
+            "version": "0.2.9",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nategood/commando.git",
+                "reference": "ba476a3928dcecfb257f9daf7d965a3abe53b6bd"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/nategood/commando/zipball/ba476a3928dcecfb257f9daf7d965a3abe53b6bd",
+                "reference": "ba476a3928dcecfb257f9daf7d965a3abe53b6bd",
+                "shasum": ""
+            },
+            "require": {
+                "kevinlebrun/colors.php": "~0.2",
+                "php": ">=5.3"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-0": {
+                    "Commando": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Nate Good",
+                    "email": "me@nategood.com"
+                }
+            ],
+            "description": "PHP CLI Commando Style",
+            "homepage": "http://github.com/nategood/commando",
+            "keywords": [
+                "automation",
+                "cli",
+                "command",
+                "command line",
+                "command line interface",
+                "scripting"
+            ],
+            "time": "2016-11-09T16:22:34+00:00"
         },
         {
             "name": "phpdocumentor/reflection-docblock",
@@ -2001,8 +2159,5 @@
     "platform": {
         "php": ">=5.3.9"
     },
-    "platform-dev": [],
-    "platform-overrides": {
-        "php": "5.3.9"
-    }
+    "platform-dev": []
 }
