@@ -13,6 +13,7 @@
  */
 
 use LibreNMS\Config;
+use LibreNMS\DB\Schema;
 use LibreNMS\Exceptions\LockException;
 use LibreNMS\Util\FileLock;
 use LibreNMS\Util\MemcacheLock;
@@ -66,17 +67,17 @@ try {
 
     d_echo("DB Schema update started....\n");
 
-    if (db_schema_is_current()) {
+    if (Schema::isCurrent()) {
         d_echo("DB Schema already up to date.\n");
     } else {
         // Set Database Character set and Collation
         dbQuery('ALTER DATABASE ? CHARACTER SET utf8 COLLATE utf8_unicode_ci;', array(array(Config::get('db_name'))));
 
-        $db_rev = get_db_schema();
+        $db_rev = Schema::getDbVersion();
         $insert = ($db_rev == 0); // if $db_rev == 0, insert the first update
 
         $updating = 0;
-        foreach (get_schema_list() as $file_rev => $file) {
+        foreach (Schema::listSchemaFiles() as $file_rev => $file) {
             if ($file_rev > $db_rev) {
                 if (!$updating) {
                     echo "-- Updating database schema\n";

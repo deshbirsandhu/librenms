@@ -36,6 +36,15 @@ class Schema
         'ports_perms',
     ];
 
+    private static $cache_file = 'misc/db_schema.yaml';
+
+    private $schema;
+
+    private function __construct($schema)
+    {
+        $this->schema = $schema;
+    }
+
     /**
      * Get the primary key column(s) for a table
      *
@@ -55,16 +64,51 @@ class Schema
         return $columns;
     }
 
-    public function getSchema()
+    /**
+     * Load the schema definition array and return it
+     * Cached in misc/db_schema.json
+     *
+     * @param bool $cache
+     * @return Schema
+     */
+    public static function load($cache = true)
     {
-        if (!isset($this->schema)) {
-            $file = Config::get('install_dir') . '/misc/db_schema.yaml';
-            $this->schema = Yaml::parse(file_get_contents($file));
+        if ($cache) {
+            $schema = Yaml::parse(file_get_contents(self::getCacheFileName()));
+        } else {
+            $schema = self::loadFromDb();
         }
 
+        return new static($schema);
+    }
+
+    public function toArray()
+    {
         return $this->schema;
     }
 
+    public function save()
+    {
+        $yaml = Yaml::dump($this->schema, 3, 2);
+
+        return file_put_contents(self::getCacheFileName(), $yaml);
+    }
+
+    public static function getCacheFileName()
+    {
+        return Config::get('install_dir') . '/' . self::$cache_file;
+    }
+
+    /**
+     * Search for the relationship path from $start to $target
+     *
+     * If this returns true, they are directly related.
+     * If it returns false, no relation could be found.
+     *
+     * @param string $start
+     * @param string $target
+     * @return array|bool tables to reach the target table through relationships
+     */
     public function findRelationshipPath($start, $target = 'devices')
     {
         d_echo("Searching for target: $target, starting with $start\n");
@@ -87,49 +131,13 @@ class Schema
         return $path;
     }
 
-    private function findPathRecursive(array $tables, $target, $history = [])
-    {
-        $relationships = $this->getTableRelationships();
-
-        d_echo("Starting Tables: " . json_encode($tables) . PHP_EOL);
-        if (!empty($history)) {
-            $tables = array_diff($tables, $history);
-            d_echo("Filtered Tables: " . json_encode($tables) . PHP_EOL);
-        }
-
-        foreach ($tables as $table) {
-            $table_relations = $relationships[$table];
-            $path = [$table];
-            d_echo("Searching $table: " . json_encode($table_relations) . PHP_EOL);
-
-            if (!empty($table_relations)) {
-                if (in_array($target, $relationships[$table])) {
-                    d_echo("Found in $table\n");
-                    return $path; // found it
-                } else {
-                    $recurse = $this->findPathRecursive($relationships[$table], $target, array_merge($history, $tables));
-                    if ($recurse) {
-                        $path = array_merge($recurse, $path);
-                        return $path;
-                    }
-                }
-            } else {
-                $relations = array_keys(array_filter($relationships, function ($related) use ($table) {
-                    return in_array($table, $related);
-                }));
-
-                d_echo("Dead end at $table, searching for relationships " . json_encode($relations) . PHP_EOL);
-                $recurse = $this->findPathRecursive($relations, $target, array_merge($history, $tables));
-                if ($recurse) {
-                    $path = array_merge($recurse, $path);
-                    return $path;
-                }
-            }
-        }
-
-        return false;
-    }
-
+    /**
+     * Get an array of tables with directly related tables.
+     * Relations are guessed by column names
+     *
+     *
+     * @return array
+     */
     public function getTableRelationships()
     {
         if (!isset($this->relationships)) {
@@ -157,6 +165,12 @@ class Schema
         return $this->relationships;
     }
 
+    /**
+     * Try to figure out the table based on the given key name
+     *
+     * @param string $key
+     * @return string|null
+     */
     public function getTableFromKey($key)
     {
         if (ends_with($key, '_id')) {
@@ -184,6 +198,13 @@ class Schema
         return null;
     }
 
+    /**
+     * Test if table contains the given column
+     *
+     * @param string $table
+     * @param string $column
+     * @return bool
+     */
     public function columnExists($table, $column)
     {
         $schema = $this->getSchema();
@@ -192,4 +213,151 @@ class Schema
 
         return in_array($column, $fields);
     }
+
+    /**
+     * Check if the database schema is up to date.
+     *
+     * @return bool
+     */
+    public static function isCurrent()
+    {
+        $current = self::getDbVersion();
+
+        $schemas = self::listSchemaFiles();
+        end($schemas);
+        $latest = key($schemas);
+
+        return $current >= $latest;
+    }
+
+    /**
+     * Get the current database schema, will return 0 if there is no schema.
+     *
+     * @return int
+     */
+    public static function getDbVersion()
+    {
+        return (int)@dbFetchCell('SELECT version FROM `dbSchema` ORDER BY version DESC LIMIT 1');
+    }
+
+    /**
+     * Get an array of the schema files.
+     * schema_version => full_file_name
+     *
+     * @return mixed
+     */
+    public static function listSchemaFiles()
+    {
+        // glob returns an array sorted by filename
+        $files = glob(Config::get('install_dir') . '/sql-schema/*.sql');
+
+        // set the keys to the db schema version
+        return array_reduce($files, function ($array, $file) {
+            $array[basename($file, '.sql')] = $file;
+            return $array;
+        }, array());
+    }
+
+    /**
+     * Recursively search for relationship paths
+     *
+     * @param array $tables
+     * @param string $target
+     * @param array $history
+     * @return array|bool
+     */
+    private function findPathRecursive(array $tables, $target, $history = [])
+    {
+        $relationships = $this->getTableRelationships();
+
+        d_echo("Starting Tables: " . json_encode($tables) . PHP_EOL);
+        if (!empty($history)) {
+            $tables = array_diff($tables, $history);
+            d_echo("Filtered Tables: " . json_encode($tables) . PHP_EOL);
+        }
+
+        foreach ($tables as $table) {
+            $table_relations = $relationships[$table];
+            $path = [$table];
+            d_echo("Searching $table: " . json_encode($table_relations) . PHP_EOL);
+
+            if (!empty($table_relations)) {
+                if (in_array($target, $relationships[$table])) {
+                    d_echo("Found in $table\n");
+                    return $path; // found it
+                } else {
+                    $recurse = $this->findPathRecursive($relationships[$table], $target,
+                        array_merge($history, $tables));
+                    if ($recurse) {
+                        $path = array_merge($recurse, $path);
+                        return $path;
+                    }
+                }
+            } else {
+                $relations = array_keys(array_filter($relationships, function ($related) use ($table) {
+                    return in_array($table, $related);
+                }));
+
+                d_echo("Dead end at $table, searching for relationships " . json_encode($relations) . PHP_EOL);
+                $recurse = $this->findPathRecursive($relations, $target, array_merge($history, $tables));
+                if ($recurse) {
+                    $path = array_merge($recurse, $path);
+                    return $path;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Dump the database schema to an array.
+     * The top level will be a list of tables
+     * Each table contains the keys Columns and Indexes.
+     *
+     * Each entry in the Columns array contains these keys: Field, Type, Null, Default, Extra
+     * Each entry in the Indexes array contains these keys: Name, Columns(array), Unique
+     *
+     * @return array
+     */
+    private static function loadFromDb()
+    {
+        $db_name = Config::get('db_name');
+        $output = array();
+
+        foreach (dbFetchRows("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = '$db_name' ORDER BY TABLE_NAME;") as $table) {
+            $table = $table['TABLE_NAME'];
+            foreach (dbFetchRows("SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '$db_name' AND TABLE_NAME='$table'") as $data) {
+                $def = array(
+                    'Field' => $data['COLUMN_NAME'],
+                    'Type' => $data['COLUMN_TYPE'],
+                    'Null' => $data['IS_NULLABLE'] === 'YES',
+                    'Extra' => str_replace('current_timestamp()', 'CURRENT_TIMESTAMP', $data['EXTRA']),
+                );
+
+                if (isset($data['COLUMN_DEFAULT']) && $data['COLUMN_DEFAULT'] != 'NULL') {
+                    $default = trim($data['COLUMN_DEFAULT'], "'");
+                    $def['Default'] = str_replace('current_timestamp()', 'CURRENT_TIMESTAMP', $default);
+                }
+
+                $output[$table]['Columns'][] = $def;
+            }
+
+            foreach (dbFetchRows("SHOW INDEX FROM `$table`") as $key) {
+                $key_name = $key['Key_name'];
+                if (isset($output[$table]['Indexes'][$key_name])) {
+                    $output[$table]['Indexes'][$key_name]['Columns'][] = $key['Column_name'];
+                } else {
+                    $output[$table]['Indexes'][$key_name] = array(
+                        'Name' => $key['Key_name'],
+                        'Columns' => array($key['Column_name']),
+                        'Unique' => !$key['Non_unique'],
+                        'Type' => $key['Index_type'],
+                    );
+                }
+            }
+        }
+        return $output;
+    }
+
 }

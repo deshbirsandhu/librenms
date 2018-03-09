@@ -26,6 +26,7 @@
 namespace LibreNMS\Validations;
 
 use LibreNMS\Config;
+use LibreNMS\DB\Schema;
 use LibreNMS\ValidationResult;
 use LibreNMS\Validator;
 use Symfony\Component\Yaml\Yaml;
@@ -41,9 +42,9 @@ class Database extends BaseValidation
         $this->checkMode($validator);
 
         // check database schema version
-        $current = get_db_schema();
+        $current = Schema::getDbVersion();
 
-        $schemas = get_schema_list();
+        $schemas = Schema::listSchemaFiles();
         end($schemas);
         $latest = key($schemas);
 
@@ -128,7 +129,7 @@ FROM information_schema.COLUMNS  WHERE TABLE_SCHEMA = '" . Config::get('db_name'
 
     private function checkSchema(Validator $validator)
     {
-        $schema_file = Config::get('install_dir') . '/misc/db_schema.yaml';
+        $schema_file = Schema::getCacheFileName();
 
         if (!is_file($schema_file)) {
             $validator->warn("We haven't detected the db_schema.yaml file");
@@ -136,7 +137,7 @@ FROM information_schema.COLUMNS  WHERE TABLE_SCHEMA = '" . Config::get('db_name'
         }
 
         $master_schema = Yaml::parse(file_get_contents($schema_file));
-        $current_schema = dump_db_schema();
+        $current_schema = Schema::getDbVersion();
         $schema_update = array();
 
         foreach ((array)$master_schema as $table => $data) {
@@ -257,7 +258,7 @@ FROM information_schema.COLUMNS  WHERE TABLE_SCHEMA = '" . Config::get('db_name'
     }
 
     /**
-     * Generate an SQL segment to create the column based on data from dump_db_schema()
+     * Generate an SQL segment to create the column based on data from Schema
      *
      * @param array $column_data The array of data for the column
      * @return string sql fragment, for example: "`ix_id` int(10) unsigned NOT NULL"
@@ -286,7 +287,7 @@ FROM information_schema.COLUMNS  WHERE TABLE_SCHEMA = '" . Config::get('db_name'
     }
 
     /**
-     * Generate an SQL segment to create the index based on data from dump_db_schema()
+     * Generate an SQL segment to create the index based on data from Schema
      *
      * @param array $index_data The array of data for the index
      * @return string sql fragment, for example: "PRIMARY KEY (`device_id`)"

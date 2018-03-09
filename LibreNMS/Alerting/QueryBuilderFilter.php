@@ -26,6 +26,7 @@
 namespace LibreNMS\Alerting;
 
 use LibreNMS\Config;
+use LibreNMS\DB\Schema;
 use Symfony\Component\Yaml\Yaml;
 
 class QueryBuilderFilter implements \JsonSerializable
@@ -79,7 +80,7 @@ class QueryBuilderFilter implements \JsonSerializable
 
     private function generateTableFilter()
     {
-        $db_schema = Yaml::parse(file_get_contents(Config::get('install_dir') . '/misc/db_schema.yaml'));
+        $db_schema = Schema::load()->toArray();
 
         foreach ((array)$db_schema as $table => $data) {
             $columns = array_column($data['Columns'], 'Type', 'Field');

@@ -1,6 +1,8 @@
 #!/usr/bin/env php
 <?php
 
+use LibreNMS\DB\Schema;
+
 $install_dir = realpath(__DIR__ . '/..');
 
 if (getenv('DBTEST')) {
@@ -28,9 +30,6 @@ if (getenv('DBTEST')) {
     sleep(60);//Sleep for 60 seconds to ensure db work has completed
 }
 
-$file = $install_dir . '/misc/db_schema.yaml';
-$yaml = Symfony\Component\Yaml\Yaml::dump(dump_db_schema(), 3, 2);
-
-if (file_put_contents($file, $yaml)) {
+if (Schema::load(false)->save()) {
     echo "Updated!\n";
 }

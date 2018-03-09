@@ -12,6 +12,8 @@
  */
 
 // FIXME - implement cli switches, debugging, etc.
+use LibreNMS\DB\Schema;
+
 $init_modules = array();
 require __DIR__ . '/includes/init.php';
 
@@ -23,7 +25,7 @@ $poller_start = microtime(true);
 echo "Starting Polling Session ... \n\n";
 
 // Wait for schema update, as running during update can break update
-$dbVersion = get_db_schema();
+$dbVersion = Schema::getDbVersion();
 if ($dbVersion < 107) {
     logfile("BILLING: Cannot continue until the database schema update to >= 107 is complete");
     exit(1);
@@ -78,7 +80,7 @@ function CollectData($bill_id)
             } else {
                 $port_data['in_delta'] = $port_data['last_in_delta'];
             }
-            
+
             if ($port_data['ifSpeed'] > 0 && (delta_to_bits($port_data['out_measurement'], $tmp_period)-delta_to_bits($port_data['last_out_measurement'], $tmp_period)) > $port_data['ifSpeed']) {
                 $port_data['out_delta'] = $port_data['last_out_delta'];
             } elseif ($port_data['out_measurement'] >= $port_data['last_out_measurement']) {

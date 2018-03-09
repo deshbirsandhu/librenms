@@ -25,6 +25,7 @@
 
 namespace LibreNMS\Tests;
 
+use LibreNMS\DB\Schema;
 use PHPUnit_Framework_ExpectationFailedException as PHPUnitException;
 
 class DBSetupTest extends DBTestCase
@@ -69,9 +70,9 @@ class DBSetupTest extends DBTestCase
 
     public function testSchema()
     {
-        $schema = get_db_schema();
+        $schema = Schema::getDbVersion();
         $this->assertGreaterThan(0, $schema, "Database has no schema!");
-        $this->assertTrue(db_schema_is_current(), "Schema not fully up-to-date, at $schema");
+        $this->assertTrue(Schema::isCurrent(), "Schema not fully up-to-date, at $schema");
     }
 
     public function testCheckDBCollation()
@@ -132,14 +133,12 @@ class DBSetupTest extends DBTestCase
 
     public function testValidateSchema()
     {
-        if (is_file('misc/db_schema.yaml')) {
-            $master_schema = \Symfony\Component\Yaml\Yaml::parse(
-                file_get_contents('misc/db_schema.yaml')
-            );
+        $cache_file = Schema::getCacheFileName();
+        if (is_file($cache_file)) {
+            $master_schema = Schema::load(true)->toArray();
+            $current_schema = Schema::load(false)->toArray();
 
-            $current_schema = dump_db_schema();
-
-            $message = "Schema does not match the excpected schema defined by misc/db_schema.yaml\n";
+            $message = "Schema does not match the expected schema defined by $cache_file\n";
             $message .= "If you have changed the schema, make sure you update it with ./scripts/build-schema.php\n";
 
             $this->assertEquals($master_schema, $current_schema, $message);

@@ -13,6 +13,7 @@
  */
 
 use LibreNMS\Authentication\Auth;
+use LibreNMS\DB\Schema;
 
 function authToken(\Slim\Route $route)
 {
@@ -1274,7 +1275,7 @@ function list_bills()
         $sql    .= ' AND `bill_id` IN (SELECT `bill_id` FROM `bill_perms` WHERE `user_id` = ?)';
         $param[] = $_SESSION['user_id'];
     }
-    
+
     if ($period === 'previous') {
         $select = "SELECT bills.bill_name, bills.bill_notes, bill_history.*, bill_history.traf_total as total_data, bill_history.traf_in as total_data_in, bill_history.traf_out as total_data_out ";
         $query = 'FROM `bills`
@@ -1331,7 +1332,7 @@ function get_bill_graph()
     if (!is_admin() && !is_read()) {
         check_bill_permission($bill_id);
     }
-    
+
     if ($graph_type == 'monthly') {
         $graph_type = 'historicmonthly';
     }
@@ -1367,7 +1368,7 @@ function get_bill_graphdata()
     } else if ($graph_type == 'monthly') {
         $graph_data = getHistoricTransferGraphData($bill_id);
     }
-    
+
     if (!isset($graph_data)) {
         api_error(400, "Unsupported graph type $graph_type");
     } else {
@@ -1397,7 +1398,7 @@ function get_bill_history()
 function get_bill_history_graph()
 {
     global $config;
-    
+
     $app = \Slim\Slim::getInstance();
     $router = $app->router()->getCurrentRoute()->getParams();
     $bill_id = mres($router['bill_id']);
@@ -1407,7 +1408,7 @@ function get_bill_history_graph()
     if (!is_admin() && !is_read()) {
         check_bill_permission($bill_id);
     }
-    
+
     $vars = array();
 
     switch ($graph_type) {
@@ -1415,13 +1416,13 @@ function get_bill_history_graph()
             $graph_type = 'historicbits';
             $vars['reducefactor'] = $_GET['reducefactor'];
             break;
-            
+
         case 'day':
         case 'hour':
             $vars['imgtype'] = $graph_type;
             $graph_type = 'historictransfer';
             break;
-            
+
         default:
             api_error(400, "Unknown Graph Type $graph_type");
             break;
@@ -1451,7 +1452,7 @@ function get_bill_history_graphdata()
     if (!is_admin() && !is_read()) {
         check_bill_permission($bill_id);
     }
-    
+
     switch ($graph_type) {
         case 'bits':
             $reducefactor = $_GET['reducefactor'];
@@ -1463,7 +1464,7 @@ function get_bill_history_graphdata()
             $graph_data = getBillingBandwidthGraphData($bill_id, $bill_hist_id, null, null, $graph_type);
             break;
     }
-    
+
     if (!isset($graph_data)) {
         api_error(400, "Unsupported graph type $graph_type");
     } else {
@@ -2053,14 +2054,14 @@ function list_logs()
     api_success($logs, 'logs', null, 200, null, array('total' => $count));
 }
 
-function validate_column_list($columns, $tableName)
+function validate_column_list($columns, $table_name)
 {
-    global $config;
+    $db_schema = Schema::load();
 
     $column_names = explode(',', $columns);
-    $db_schema = Symfony\Component\Yaml\Yaml::parse(file_get_contents($config['install_dir'] . '/misc/db_schema.yaml'));
-    $valid_columns = array_column($db_schema[$tableName]['Columns'], 'Field');
-    $invalid_columns = array_diff(array_map('trim', $column_names), $valid_columns);
+    $invalid_columns = array_filter($column_names, function ($column_name) use ($db_schema, $table_name) {
+        return !$db_schema->columnExists($table_name, $column_name);
+    });
 
     if (count($invalid_columns) > 0) {
         $output = array(
