@@ -16,5 +16,11 @@
         {"condition":"AND","rules":[{"id":"macros.state_sensor_critical","field":"macros.state_sensor_critical","type":"integer","input":"radio","operator":"equal","value":"1"}],"valid":true},
         "macros.state_sensor_critical = 1",
         "SELECT * FROM sensors,state_translations,sensors_to_state_indexes,state_indexes WHERE (sensors.device_id = ? AND sensors_to_state_indexes.state_index_id = state_indexes.state_index_id AND state_indexes.state_index_id = state_translations.state_translation_id) AND (sensors.sensor_current = state_translations.state_value && state_translations.state_generic_value = 2) = 1"
+    ],
+    [
+        "",
+        {"condition":"AND","rules":[{"id":"macros.device","field":"macros.device","type":"integer","input":"radio","operator":"equal","value":"1"},{"condition":"OR","rules":[{"id":"macros.sensor_state_warning","field":"macros.sensor_state_warning","type":"integer","input":"radio","operator":"equal","value":"1"},{"id":"macros.state_sensor_critical","field":"macros.state_sensor_critical","type":"integer","input":"radio","operator":"equal","value":"1"}]}],"valid":true},
+        "macros.device = 1 AND (macros.sensor_state_warning = 1 OR macros.state_sensor_critical = 1)",
+        "SELECT * FROM devices,sensors,state_translations,sensors_to_state_indexes,state_indexes WHERE (sensors.device_id = ? AND sensors.device_id = devices.device_id AND sensors_to_state_indexes.state_index_id = state_indexes.state_index_id AND state_indexes.state_index_id = state_translations.state_translation_id) AND (devices.disabled = 0 && devices.ignore = 0) = 1 AND ((sensors.sensor_class = 'state' && sensors.sensor_current = state_translations.state_value && state_translations.state_generic_value = 1) = 1 OR (sensors.sensor_current = state_translations.state_value && state_translations.state_generic_value = 2) = 1)"
     ]
 ]
