@@ -34,5 +34,11 @@
         {"condition":"AND","rules":[{"id":"bills.bill_name","field":"bills.bill_name","type":"string","input":"text","operator":"equal","value":"Neil's Bill"}],"valid":true},
         "bills.bill_name = \"Neil's Bill\"",
         "SELECT * FROM devices,ports,bill_ports,bills WHERE (devices.device_id = ? AND devices.device_id = ports.device_id AND ports.port_id = bill_ports.port_id AND bill_ports.bill_id = bills.bill_id) AND bills.bill_name = \"Neil's Bill\""
+    ],
+    [
+        "%ports.ifType = \"ieee8023adLag\" && %ports.ifDescr !~ \"Link Aggregation @, load balancing algorithm: Source ip address hash\"",
+        {"condition":"AND","rules":[{"id":"ports.ifType","field":"ports.ifType","type":"string","input":"text","operator":"equal","value":"ieee8023adLag"},{"id":"ports.ifDescr","field":"ports.ifDescr","type":"string","input":"text","operator":"not_regex","value":"Link Aggregation .*, load balancing algorithm: Source ip address hash"}],"valid":true},
+        "ports.ifType = \"ieee8023adLag\" AND ports.ifDescr NOT REGEXP \"Link Aggregation .*, load balancing algorithm: Source ip address hash\"",
+        "SELECT * FROM devices,ports WHERE (devices.device_id = ? AND devices.device_id = ports.device_id) AND ports.ifType = \"ieee8023adLag\" AND ports.ifDescr NOT REGEXP \"Link Aggregation .*, load balancing algorithm: Source ip address hash\""
     ]
 ]

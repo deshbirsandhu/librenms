@@ -52,10 +52,13 @@ class QueryBuilderTest extends TestCase
     {
         if (!empty($legacy)) {
             // some rules don't have a legacy representation
-            $this->assertEquals($builder, QueryBuilderParser::fromOld($legacy)->toArray());
+            $message = "Import form legacy rule failed";
+            $this->assertEquals($builder, QueryBuilderParser::fromOld($legacy)->toArray(), $message);
         }
-        $this->assertEquals($display, QueryBuilderParser::fromJson($builder)->toSql(false));
-        $this->assertEquals($sql, QueryBuilderParser::fromJson($builder)->toSql());
+        $message = "Export to descriptive sql failed";
+        $this->assertEquals($display, QueryBuilderParser::fromJson($builder)->toSql(false), $message);
+        $message = "Export to full sql query failed";
+        $this->assertEquals($sql, QueryBuilderParser::fromJson($builder)->toSql(), $message);
     }
 
     public function loadQueryData()
