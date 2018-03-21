@@ -22,9 +22,9 @@
  * @subpackage Alerts
  */
 
-namespace LibreNMS\Alert\Transport;
+namespace LibreNMS\Alerting\Transport;
 
-use LibreNMS\Interfaces\Alert\Transport;
+use LibreNMS\Interfaces\Alerting\Transport;
 
 class Api implements Transport
 {
@@ -59,5 +59,55 @@ class Api implements Transport
             }
         }
         return true;
+    }
+
+    /**
+     * Get the name of this transport
+     * This will be used to prefix config settings and should be all lowercase and alpha-numeric
+     *
+     * @return string
+     */
+    public function getName()
+    {
+        return 'api';
+    }
+
+    /**
+     * Get the description of this transport
+     * This will be displayed in the webui
+     *
+     * @return string
+     */
+    public function getDescription()
+    {
+        return 'API';
+    }
+
+    /**
+     * Generate a config template to be used with generate_dynamic_config_panel()
+     *
+     * @return mixed
+     */
+    public function configTemplate()
+    {
+        return [
+            [
+                'name' => 'description',
+                'descr' => 'Description',
+                'type' => 'text',
+
+            ],
+            [
+                'name' => 'method',
+                'descr' => 'HTTP method',
+                'type' => 'select',
+                'options' => ['GET', 'POST', 'PUT'],
+            ],
+            [
+                'name' => 'url',
+                'descr' => 'URL to send alert data to',
+                'type' => 'url',
+            ]
+        ];
     }
 }

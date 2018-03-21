@@ -23,10 +23,26 @@
  * @author     Robbrecht Plaisier <librenms@mcq8.be>
  */
 
-namespace LibreNMS\Interfaces\Alert;
+namespace LibreNMS\Interfaces\Alerting;
 
 interface Transport
 {
+    /**
+     * Get the name of this transport
+     * This will be used to prefix config settings and should be all lowercase and alpha-numeric
+     *
+     * @return string
+     */
+    public function getName();
+
+    /**
+     * Get the description of this transport
+     * This will be displayed in the webui
+     *
+     * @return string
+     */
+    public function getDescription();
+
     /**
      * Gets called when an alert is sent
      *
@@ -35,4 +51,11 @@ interface Transport
      * @return bool Returns if the call was successful
      */
     public function deliverAlert($alert_data, $opts);
+
+    /**
+     * Generate a config template to be used with generate_dynamic_config_panel()
+     *
+     * @return mixed
+     */
+    public function configTemplate();
 }

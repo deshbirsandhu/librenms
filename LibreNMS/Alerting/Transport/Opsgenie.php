@@ -1,5 +1,9 @@
 <?php
-/* Copyright (C) 2017 Celal Emre CICEK <celal.emre@opsgenie.com>
+/**
+ * Opsgenie.php
+ *
+ * -Description-
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -11,19 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
-/**
- * OpsGenie API Transport
- * @author Celal Emre CICEK <celal.emre@opsgenie.com>
- * @copyright 2017 Celal Emre CICEK
- * @license GPL
- * @package LibreNMS
- * @subpackage Alerts
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @package    LibreNMS
+ * @link       http://librenms.org
+ * @copyright  2018 Tony Murray
+ * @author     Tony Murray <murraytony@gmail.com>
  */
-namespace LibreNMS\Alert\Transport;
 
-use LibreNMS\Interfaces\Alert\Transport;
+amespace LibreNMS\Alerting\Transport;
+
+use LibreNMS\Interfaces\Alerting\Transport;
 
 class Opsgenie implements Transport
 {

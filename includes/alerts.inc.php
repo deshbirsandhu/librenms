@@ -864,13 +864,14 @@ function ExtTransports($obj)
         if (is_array($opts)) {
             $opts = array_filter($opts);
         }
-        $class  = 'LibreNMS\\Alert\\Transport\\' . ucfirst($transport);
+        $class  = 'LibreNMS\\Alerting\\Transport\\' . ucfirst($transport);
         if (($opts === true || !empty($opts)) && $opts != false && class_exists($class)) {
             $obj['transport'] = $transport;
             $msg        = FormatAlertTpl($obj);
             $obj['msg'] = $msg;
             echo $transport.' => ';
-            $instance = new $class;
+            /** @var \LibreNMS\Interfaces\Alerting\Transport $instance */
+            $instance = new $class();
             $tmp = $instance->deliverAlert($obj, $opts);
             $prefix = array( 0=>"recovery", 1=>$obj['severity']." alert", 2=>"acknowledgment" );
             $prefix[3] = &$prefix[0];

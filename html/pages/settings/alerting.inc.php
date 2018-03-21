@@ -301,71 +301,7 @@ $general_conf = array(
     ),
 );
 
-$mail_conf = array(
-    array('name'               => 'alert.transports.mail',
-          'descr'              => 'Enable email alerting',
-          'type'               => 'checkbox',
-    ),
-    array('name'               => 'email_backend',
-          'descr'              => 'How to deliver mail',
-          'options'            => $config['email_backend_options'],
-          'type'               => 'select',
-    ),
-    array('name'               => 'email_user',
-          'descr'              => 'From name',
-          'type'               => 'text',
-    ),
-    array('name'               => 'email_from',
-          'descr'              => 'From email address',
-          'type'               => 'text',
-          'pattern'            => '[a-zA-Z0-9_\-\.\+]+@[a-zA-Z0-9_\-\.]+\.[a-zA-Z]{2,18}',
-    ),
-    array('name'               => 'email_html',
-          'descr'              => 'Use HTML emails',
-          'type'               => 'checkbox',
-    ),
-    array('name'               => 'email_sendmail_path',
-          'descr'              => 'Sendmail path',
-          'type'               => 'text',
-    ),
-    array('name'               => 'email_smtp_host',
-          'descr'              => 'SMTP Host',
-          'type'               => 'text',
-          'pattern'            => '[a-zA-Z0-9_\-\.]+',
-    ),
-    array('name'               => 'email_smtp_port',
-          'descr'              => 'SMTP Port',
-          'type'               => 'numeric',
-          'required'           => true,
-    ),
-    array('name'               => 'email_smtp_timeout',
-          'descr'              => 'SMTP Timeout',
-          'type'               => 'numeric',
-          'required'           => true,
-    ),
-    array('name'               => 'email_smtp_secure',
-          'descr'              => 'SMTP Secure',
-          'type'               => 'select',
-          'options'            => $config['email_smtp_secure_options'],
-    ),
-    array('name'               => 'email_auto_tls',
-          'descr'              => 'SMTP Auto TLS Support',
-          'type'               => 'select',
-          'options'            => array('true', 'false'),
-    ),
-    array('name'               => 'email_smtp_auth',
-          'descr'              => 'SMTP Authentication',
-          'type'               => 'checkbox',
-    ),
-    array('name'               => 'email_smtp_username',
-          'descr'              => 'SMTP Authentication Username',
-          'type'               => 'text',
-    ),
-    array('name'               => 'email_smtp_password',
-          'descr'              => 'SMTP Authentication Password',
-          'type'               => 'password',
-    ),
-);
+
 
 echo '
 <div class="panel-group" id="accordion">
@@ -373,7 +309,15 @@ echo '
 ';
 
 echo generate_dynamic_config_panel('General alert settings', $config_groups, $general_conf);
-echo generate_dynamic_config_panel('Email transport', $config_groups, $mail_conf, 'mail');
+
+foreach (\LibreNMS\Alerting\Transports::getAll() as $transport) {
+    echo generate_dynamic_config_panel(
+        $transport->getDescription(),
+        $config_groups,
+        $transport->configTemplate(),
+        $transport->getName()
+    );
+}
 
 echo '
         <div class="panel panel-default">

@@ -1,5 +1,9 @@
 <?php
-/* Copyright (C) 2015 Daniel Preussker <f0o@librenms.org>
+/**
+ * Smseagle.php
+ *
+ * -Description-
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -11,19 +15,17 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
-/**
- * SMSEagle API Transport
- * @author Barry O'Donovan <barry@lightnet.ie>
- * @copyright 2017 Barry O'Donovan, LibreNMS
- * @license GPL
- * @package LibreNMS
- * @subpackage Alerts
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * @package    LibreNMS
+ * @link       http://librenms.org
+ * @copyright  2018 Tony Murray
+ * @author     Tony Murray <murraytony@gmail.com>
  */
-namespace LibreNMS\Alert\Transport;
 
-use LibreNMS\Interfaces\Alert\Transport;
+amespace LibreNMS\Alerting\Transport;
+
+use LibreNMS\Interfaces\Alerting\Transport;
 
 class Smseagle implements Transport
 {
